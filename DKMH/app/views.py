@@ -20,9 +20,9 @@ from .serializers import (
 )
 
 def generate_account_code(prefix, model, field):
-    """Tạo mã tài khoản: 2 ký tự prefix + 6 ký tự random, đảm bảo unique."""
+    """Tạo mã tài khoản: 2 ký tự prefix + 6 ký tự số, đảm bảo unique."""
     while True:
-        random_part = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+        random_part = ''.join(random.choices(string.digits, k=6))  # Chỉ lấy số
         account_code = f"{prefix}{random_part}"
         if not model.objects.filter(**{field: account_code}).exists():
             return account_code
