@@ -3,15 +3,15 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.core.mail import send_mail
 from django.conf import settings
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 import random
 import string
-
+from django.shortcuts import render,redirect
 from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import action
 from rest_framework.views import APIView
 from rest_framework.response import Response
-
+from .forms import ForgotPasswordForm 
 from .models import Student, Staff
 from .serializers import (
     CreateStaffSerializer,
@@ -234,3 +234,42 @@ class AdminViewSet(viewsets.ViewSet):
                     print(f"Error sending email to {user.email}: {e}")
                     continue
             return Response({"message": "Đã gửi email thành công"})
+
+# View cho trang đăng nhập
+def login_view(request):
+    # Nếu người dùng đã đăng nhập, chuyển hướng đến trang chính (hoặc dashboard)
+    if request.user.is_authenticated:
+        return HttpResponse("Bạn đã đăng nhập rồi!")
+    # Render trang đăng nhập
+    return render(request, 'login.html')
+def forgot_password_view(request):
+    if request.method == 'POST':
+        email = request.POST.get('email')
+        student_code = request.POST.get('studentCode')
+        staff_code = request.POST.get('staffCode')
+
+        # Kiểm tra thông tin người dùng: Nếu là sinh viên, kiểm tra mã sinh viên và email
+        user = None
+        if student_code:
+            user = Student.objects.filter(studentCode=student_code, email=email).first()
+        elif staff_code:
+            user = Staff.objects.filter(staffCode=staff_code, email=email).first()
+
+        if user:
+            # Tạo mật khẩu ngẫu nhiên
+            new_password = generate_password()
+
+            # Lưu mật khẩu đã băm vào database
+            user.set_password(new_password)  # Lưu mật khẩu đã băm
+            user.save()
+
+            # Gửi mật khẩu qua email (mật khẩu chưa băm)
+            subject = "Mật khẩu mới"
+            message = f"Chào {user.fullName},\n\nMật khẩu của bạn là: {new_password}"
+            send_mail(subject, message, settings.EMAIL_HOST_USER, [user.email])
+
+            return JsonResponse({"status": "success", "message": "Mật khẩu đã được gửi về email của bạn."})
+        else:
+            return JsonResponse({"status": "error", "message": "Thông tin không chính xác, vui lòng kiểm tra lại."})
+
+    return render(request, 'forgot_password.html')
