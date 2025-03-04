@@ -18,6 +18,7 @@ DATABASES = {
 
 trong file để xác định database khi chạy code.
 ---------------------------------------------------------------------------------------------------------------------------
+
 Setting Email host  trong setting.py:
 EMAIL_HOST_USER = 'email của bạn'
 EMAIL_HOST_PASSWORD = 'mật khẩu ứng dụng của email' 
