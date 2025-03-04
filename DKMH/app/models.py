@@ -1,10 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.db.models import Q, UniqueConstraint
-<<<<<<< HEAD
 from django.core.exceptions import ValidationError
-=======
->>>>>>> d5a643ba0051472ec2f44ef8482b304f4344ed64
 # ---------------------------
 # Quản lý tài khoản tùy chỉnh
 # ---------------------------
@@ -56,12 +53,8 @@ class Student(CustomUser):
     studentCode = models.CharField(max_length=50, unique=True)
     fullName = models.CharField(max_length=255)
     birthDate = models.DateField(null=True, blank=True)
-<<<<<<< HEAD
     email = models.EmailField(unique=True, null=False)
 
-=======
-    email = models.EmailField(unique=True)
->>>>>>> d5a643ba0051472ec2f44ef8482b304f4344ed64
     phoneNumber = models.CharField(max_length=15, null=True, blank=True)
     address = models.TextField(null=True, blank=True)
     className = models.CharField(max_length=50, null=True, blank=True)
@@ -72,15 +65,11 @@ class Student(CustomUser):
 
     def __str__(self):
         return self.fullName
-<<<<<<< HEAD
     def save(self, *args, **kwargs):
         # Kiểm tra email trùng lặp trước khi lưu
         if Student.objects.filter(email=self.email).exclude(id=self.id).exists():
             raise ValidationError(f"Email {self.email} đã tồn tại trong hệ thống.")
         super().save(*args, **kwargs)
-=======
-
->>>>>>> d5a643ba0051472ec2f44ef8482b304f4344ed64
     class Meta:
         constraints = [
             UniqueConstraint(
@@ -98,27 +87,19 @@ class Staff(CustomUser):
     staffId = models.AutoField(primary_key=True)
     staffCode = models.CharField(max_length=50, unique=True)
     staffName = models.CharField(max_length=255)
-<<<<<<< HEAD
     email = models.EmailField(unique=True, null=False)
 
-=======
-    email = models.EmailField(unique=True)
->>>>>>> d5a643ba0051472ec2f44ef8482b304f4344ed64
     birthDate = models.DateField(null=True, blank=True)
     department = models.ForeignKey('Department', on_delete=models.SET_NULL, null=True, blank=True, related_name="staffs")
     is_email_sent = models.BooleanField(default=False)
 
     def __str__(self):
         return self.staffName
-<<<<<<< HEAD
     def save(self, *args, **kwargs):
         # Kiểm tra email trùng lặp trước khi lưu
         if Student.objects.filter(email=self.email).exclude(id=self.id).exists():
             raise ValidationError(f"Email {self.email} đã tồn tại trong hệ thống.")
         super().save(*args, **kwargs)
-=======
-
->>>>>>> d5a643ba0051472ec2f44ef8482b304f4344ed64
     class Meta:
         constraints = [
             UniqueConstraint(
@@ -242,8 +223,4 @@ class CurriculumFramework(models.Model):
     semester = models.IntegerField()
 
     def __str__(self):
-<<<<<<< HEAD
         return f"Chương trình khung: {self.major.majorName} - {self.subject.subjectName} (Học kỳ {self.semester})"
-=======
-        return f"Chương trình khung: {self.major.majorName} - {self.subject.subjectName} (Học kỳ {self.semester})"
->>>>>>> d5a643ba0051472ec2f44ef8482b304f4344ed64

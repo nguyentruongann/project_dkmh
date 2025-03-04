@@ -130,7 +130,7 @@ class AdminViewSet(viewsets.ViewSet):
             # Gửi email ngay với mật khẩu gốc
             subject = "Thông tin tài khoản đăng nhập"
             message = (
-                f"Xin chào {staff.username},\n"
+                f"Xin chào {staff.fullName},\n"
                 f"Tài khoản của bạn:\nUsername: {staff.username}\nPassword: {password}"
             )
             send_mail(subject, message, settings.EMAIL_HOST_USER, [staff.email])
@@ -182,7 +182,7 @@ class AdminViewSet(viewsets.ViewSet):
             # Gửi email với mật khẩu gốc
             subject = "Thông tin tài khoản đăng nhập"
             message = (
-                f"Xin chào {student.username},\n"
+                f"Xin chào {student.fullName},\n"
                 f"Tài khoản của bạn:\nUsername: {student.username}\nPassword: {password}"
             )
             send_mail(subject, message, settings.EMAIL_HOST_USER, [student.email])
@@ -222,14 +222,10 @@ class AdminViewSet(viewsets.ViewSet):
             for user in users:
                 try:
                     subject = "Thông tin tài khoản đăng nhập"
-                    # Lưu ý: Tại đây, user.password đã là hash, nên người dùng không thể đăng nhập bằng hash.
+                   
                     message = (
-<<<<<<< HEAD
                         f"Xin chào {user.fullName},\n"
-=======
-                        f"Xin chào {user.username},\n"
->>>>>>> d5a643ba0051472ec2f44ef8482b304f4344ed64
-                        f"Tài khoản của bạn:\nUsername: {user.username}\nPassword: {user.password}"
+                        f"Tài khoản của bạn:\nUsername: {user.username}\nPassword: {user.plain_password}"
                     )
                     send_mail(subject, message, settings.EMAIL_HOST_USER, [user.email])
                     user.is_email_sent = True
@@ -260,25 +256,14 @@ def forgot_password_view(request):
             user = Staff.objects.filter(staffCode=staff_code, email=email).first()
 
         if user:
-            # Tạo mật khẩu ngẫu nhiên
-            new_password = generate_password()
-
-            # Lưu mật khẩu đã băm vào database
-            user.set_password(new_password)  # Lưu mật khẩu đã băm
-            user.save()
-
             # Gửi mật khẩu qua email (mật khẩu chưa băm)
-            subject = "Mật khẩu mới"
-            message = f"Chào {user.fullName},\n\nMật khẩu của bạn là: {new_password}"
+            subject = "Mật khẩu"
+            message = f"Chào {user.fullName},\n\nMật khẩu của bạn là: {user.plain_password}"
             send_mail(subject, message, settings.EMAIL_HOST_USER, [user.email])
 
             return JsonResponse({"status": "success", "message": "Mật khẩu đã được gửi về email của bạn."})
         else:
             return JsonResponse({"status": "error", "message": "Thông tin không chính xác, vui lòng kiểm tra lại."})
 
-<<<<<<< HEAD
     return render(request, 'forgot_password.html')
 
-=======
-    return render(request, 'forgot_password.html')
->>>>>>> d5a643ba0051472ec2f44ef8482b304f4344ed64

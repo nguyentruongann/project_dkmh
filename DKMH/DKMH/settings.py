@@ -48,10 +48,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-<<<<<<< HEAD
 
-=======
->>>>>>> d5a643ba0051472ec2f44ef8482b304f4344ed64
     'app',
     'rest_framework',
     'rest_framework.authtoken',
@@ -155,8 +152,4 @@ EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'nta21303@gmail.com'
-<<<<<<< HEAD
 EMAIL_HOST_PASSWORD = 'yqps tosy gegy figk'
-=======
-EMAIL_HOST_PASSWORD = 'itbe gvtz ldzn jxkl'
->>>>>>> d5a643ba0051472ec2f44ef8482b304f4344ed64
