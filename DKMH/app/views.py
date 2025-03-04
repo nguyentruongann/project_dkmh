@@ -224,7 +224,11 @@ class AdminViewSet(viewsets.ViewSet):
                     subject = "Thông tin tài khoản đăng nhập"
                     # Lưu ý: Tại đây, user.password đã là hash, nên người dùng không thể đăng nhập bằng hash.
                     message = (
+<<<<<<< HEAD
                         f"Xin chào {user.fullName},\n"
+=======
+                        f"Xin chào {user.username},\n"
+>>>>>>> d5a643ba0051472ec2f44ef8482b304f4344ed64
                         f"Tài khoản của bạn:\nUsername: {user.username}\nPassword: {user.password}"
                     )
                     send_mail(subject, message, settings.EMAIL_HOST_USER, [user.email])
@@ -272,5 +276,9 @@ def forgot_password_view(request):
         else:
             return JsonResponse({"status": "error", "message": "Thông tin không chính xác, vui lòng kiểm tra lại."})
 
+<<<<<<< HEAD
     return render(request, 'forgot_password.html')
 
+=======
+    return render(request, 'forgot_password.html')
+>>>>>>> d5a643ba0051472ec2f44ef8482b304f4344ed64
