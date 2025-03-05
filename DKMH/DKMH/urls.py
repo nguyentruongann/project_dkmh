@@ -22,4 +22,6 @@ urlpatterns = [
 
     # Đường dẫn cho DRF Browsable API login/logout
     path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
+
+    path('api/', include(router.urls)),
 ]

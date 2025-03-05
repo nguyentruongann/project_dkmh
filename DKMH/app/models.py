@@ -162,8 +162,7 @@ class Lecturer(models.Model):
     # Liên kết với Major và Department (FK)
     major = models.ForeignKey(Major, on_delete=models.SET_NULL, null=True, blank=True, related_name="lecturers")
     department = models.ForeignKey(Department, on_delete=models.SET_NULL, null=True, blank=True, related_name="lecturers")
-    # Quan hệ N-N với Subject
-    subjects = models.ManyToManyField(Subject, related_name="lecturers", blank=True)
+    
 
     def __str__(self):
         return self.lecturerName
@@ -221,6 +220,26 @@ class CurriculumFramework(models.Model):
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name="curriculums")
     major = models.ForeignKey(Major, on_delete=models.CASCADE, related_name="curriculums")
     semester = models.IntegerField()
+    
 
     def __str__(self):
         return f"Chương trình khung: {self.major.majorName} - {self.subject.subjectName} (Học kỳ {self.semester})"
+    
+
+# ---------------------------
+# Model Lớp
+# ---------------------------
+class Class(models.Model):
+    classId = models.AutoField(primary_key=True)
+    classCode = models.CharField(max_length=50, unique=True)
+    className = models.CharField(max_length=255)
+    # Liên kết với Department
+    department = models.ForeignKey(Department, on_delete=models.CASCADE, related_name="classes")
+    # Liên kết với Lecturer
+    lecturer = models.ForeignKey(Lecturer, on_delete=models.SET_NULL, null=True, blank=True, related_name="classes")
+    # Liên kết với Subject
+    subjects = models.ManyToManyField(Subject, related_name="classes", blank=True)
+
+    def __str__(self):
+        return f"Lớp: {self.className} "
+    
