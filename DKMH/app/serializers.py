@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.core.exceptions import ValidationError
-from .models import Student, Staff
+from .models import Student, Staff, Subject
 import random
 import string
 
@@ -78,3 +78,9 @@ class SendEmailSerializer(serializers.Serializer):
     bạn có thể để trống hoặc đặt một message read-only.
     """
     message = serializers.CharField(read_only=True)
+
+
+class SubjectSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Subject
+        fields = '__all__'
