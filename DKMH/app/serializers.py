@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.core.exceptions import ValidationError
-from .models import Student, Staff, Subject
+from .models import Student, Staff, Subject, Major, Department, CurriculumFramework
 import random
 import string
 
@@ -84,3 +84,43 @@ class SubjectSerializer(serializers.ModelSerializer):
     class Meta:
         model = Subject
         fields = '__all__'
+
+
+
+class MajorSerializer(serializers.ModelSerializer):
+    departmentId = serializers.PrimaryKeyRelatedField(
+        queryset=Department.objects.all(),
+        source='department',
+        write_only=True
+    )
+    departmentName = serializers.CharField(source='department.departmentName', read_only=True)
+
+    class Meta:
+        model = Major
+        fields = ['majorId', 'majorCode', 'majorName', 'departmentId', 'departmentName']
+
+
+class DepartmentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Department
+        fields = ['departmentId', 'departmentCode', 'departmentName']
+
+
+class CurriculumFrameworkSerializer(serializers.ModelSerializer):
+    subjectId = serializers.PrimaryKeyRelatedField(
+        queryset=Subject.objects.all(),
+        source='subject',
+        write_only=True
+    )
+    subjectName = serializers.CharField(source='subject.subjectName', read_only=True)
+
+    majorId = serializers.PrimaryKeyRelatedField(
+        queryset=Major.objects.all(),
+        source='major',
+        write_only=True
+    )
+    majorName = serializers.CharField(source='major.majorName', read_only=True)
+
+    class Meta:
+        model = CurriculumFramework
+        fields = ['curriculumFrameworkId', 'subjectId', 'subjectName', 'majorId', 'majorName', 'semester']
