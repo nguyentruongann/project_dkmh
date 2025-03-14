@@ -1,0 +1,17 @@
+Infomation st:
++ xemThongTinSinhVien () 
++ chinhThongTinSinhVien ()
++ doiMatKhau()
+right top pasting 650x350
+
+---------------------------------------------------------------------------
+##options
+---------------------------------------------------------------------------
++xemChuongTrinhKhung()
+trích xuất sinh viên theo khoa -> đưa ra bảng chương trình khung
+---------------------------------------------------------------------------
++xemThongTinHocPhi() ( tiền đã đóng~ tiền còn nợ hp)
+---------------------------------------------------------------------------
+dangKiHocPhan() ở trên 
+ở dưới là hiển thị các học phần đã đăng kí trong kì hiện tại                                                                     
+---------------------------------------------------------------------------

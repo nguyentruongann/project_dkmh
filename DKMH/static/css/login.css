@@ -1,0 +1,82 @@
+/* login.css */
+
+body {
+    background: linear-gradient(135deg, #00b4d8, #0077b6);  /* Màu nền gradient hiện đại */
+    font-family: 'Arial', sans-serif;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 0;
+}
+
+.container {
+    width: 100%;
+    max-width: 500px;
+    padding: 20px;
+}
+
+.login-card {
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    padding: 30px;
+}
+
+.login-title {
+    text-align: center;
+    font-size: 28px;
+    margin-bottom: 20px;
+    color: #0077b6;  /* Màu tiêu đề */
+}
+
+.form-label {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+/* Giảm chiều rộng các ô nhập */
+.form-control {
+    border-radius: 8px;
+    height: 45px;
+    font-size: 14px;
+    margin-bottom: 20px;  /* Thêm khoảng cách dưới cho các trường nhập */
+    width: 100%;  /* Đảm bảo chiều rộng đầy đủ */
+}
+
+/* Giảm chiều rộng và tăng khoảng cách giữa các ô nhập */
+.mb-3 {
+    margin-bottom: 20px; /* Tăng khoảng cách giữa các trường nhập */
+}
+
+/* Căn giữa nút Đăng Nhập */
+.btn-primary {
+    background-color: #0077b6;
+    border-color: #0077b6;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    padding: 10px;
+    width: 100%;  /* Đảm bảo nút chiếm toàn bộ chiều rộng của form */
+    margin-bottom: 20px;  /* Thêm khoảng cách dưới cho nút */
+}
+
+.btn-primary:hover {
+    background-color: #00b4d8;
+    border-color: #00b4d8;
+}
+
+/* Căn giữa phần text "Quên mật khẩu?" */
+.text-center a {
+    color: #0077b6;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.text-center a:hover {
+    text-decoration: underline;
+}
+
+.form-check {
+    margin-bottom: 20px; /* Thêm khoảng cách cho checkbox */
+}

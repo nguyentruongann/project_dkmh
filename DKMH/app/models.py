@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.db.models import Q, UniqueConstraint
 from django.core.exceptions import ValidationError
+from datetime import datetime
 # ---------------------------
 # Quản lý tài khoản tùy chỉnh
 # ---------------------------
@@ -49,37 +50,51 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 # Model Sinh viên
 # ---------------------------
 class Student(CustomUser):
-    studentId = models.AutoField(primary_key=True)
-    studentCode = models.CharField(max_length=50, unique=True)
-    fullName = models.CharField(max_length=255)
-    birthDate = models.DateField(null=True, blank=True)
-    email = models.EmailField(unique=True, null=False)
+    studentId = models.AutoField(primary_key=True)  # Unique student ID
+    studentCode = models.CharField(max_length=50, unique=True)  # Unique student code
+    fullName = models.CharField(max_length=255)  # Student's full name
+    birthDate = models.DateField(null=True, blank=True)  # Student's birth date
+    email = models.EmailField(unique=True, null=False)  # Student's email, must be unique
+    phoneNumber = models.CharField(max_length=15, null=True, blank=True)  # Student's phone number
+    address = models.TextField(null=True, blank=True)  # Student's address
+    className = models.CharField(max_length=50, null=True, blank=True)  # Student's class name
+    k = models.IntegerField(null=True, blank=True)  # Additional field (not clear what it's for, could be grade level)
 
-    phoneNumber = models.CharField(max_length=15, null=True, blank=True)
-    address = models.TextField(null=True, blank=True)
-    className = models.CharField(max_length=50, null=True, blank=True)
-    k = models.IntegerField(null=True, blank=True)
+    # Foreign key to Major and Department, allows linking to a specific department and major
     major = models.ForeignKey('Major', on_delete=models.SET_NULL, null=True, blank=True, related_name="students")
     department = models.ForeignKey('Department', on_delete=models.SET_NULL, null=True, blank=True, related_name="students")
+
+    # Whether the email has been sent, for internal use
     is_email_sent = models.BooleanField(default=False)
+
+    # Profile picture for the student (ImageField)
+    profile_picture = models.ImageField(
+        upload_to='profile_pics/',
+        null=True,
+        blank=True,
+        default='IMG/default_avatar.png'  # Default avatar image path
+    )
+
+    def save(self, *args, **kwargs):
+        # Set the 'k' field automatically to the current year - 2003
+        if self.k is None:  # If 'k' is not set
+            current_year = datetime.now().year
+            self.k = current_year - 2003
+
+        super().save(*args, **kwargs)  # Save the student instance
 
     def __str__(self):
         return self.fullName
-    def save(self, *args, **kwargs):
-        # Kiểm tra email trùng lặp trước khi lưu
-        if Student.objects.filter(email=self.email).exclude(id=self.id).exists():
-            raise ValidationError(f"Email {self.email} đã tồn tại trong hệ thống.")
-        super().save(*args, **kwargs)
+
     class Meta:
         constraints = [
+            # Ensures that email is unique if it's not NULL
             UniqueConstraint(
                 fields=["email"],
                 name="unique_student_email",
-                condition=Q(email__isnull=False)  # Không áp dụng nếu email là NULL
+                condition=Q(email__isnull=False)  # Apply the constraint only when email is not NULL
             )
         ]
-
-
 # ---------------------------
 # Model Nhân viên
 # ---------------------------
@@ -92,7 +107,12 @@ class Staff(CustomUser):
     birthDate = models.DateField(null=True, blank=True)
     department = models.ForeignKey('Department', on_delete=models.SET_NULL, null=True, blank=True, related_name="staffs")
     is_email_sent = models.BooleanField(default=False)
-
+    profile_picture = models.ImageField(
+        upload_to='profile_pics/',
+        null=True,
+        blank=True,
+        default='IMG/default_avatar.png'  # Default avatar image path
+    )
     def __str__(self):
         return self.staffName
     def save(self, *args, **kwargs):

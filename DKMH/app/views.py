@@ -1,24 +1,30 @@
-from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth import authenticate, login, logout,update_session_auth_hash
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.core.mail import send_mail
 from django.conf import settings
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse, JsonResponse,HttpResponseRedirect,HttpResponseForbidden
 import random
 import string
+from django.contrib import messages
 from django.shortcuts import render,redirect
 from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import action
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from .forms import ForgotPasswordForm 
-from .models import Student, Staff
+from django.urls import reverse
+from .forms import  StudentInfoForm, CustomPasswordChangeForm, AvatarForm
+# from .forms import ForgotPasswordForm 
+from .models import Student, Staff,Department
 from .serializers import (
     CreateStaffSerializer,
     CreateStudentSerializer,
-    SendEmailSerializer  # Nếu bạn muốn giữ action send_email, có thể dùng serializer này
+    SendEmailSerializer ,
+    CreateDepartmentSerializer
 )
-
+def generate_department_code():
+    """Generate a random 12-character department code."""
+    return ''.join(random.choices(string.ascii_uppercase + string.digits, k=12))
 def generate_account_code(prefix, model, field):
     """Tạo mã tài khoản: 2 ký tự prefix + 6 ký tự số, đảm bảo unique."""
     while True:
@@ -34,12 +40,83 @@ def generate_password():
 
 # Trang chủ đơn giản
 class HomeView(APIView):
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        return HttpResponse("<h1>Welcome to the homepage!</h1>")
+        username = request.user.username
+        
+        # Kiểm tra nếu username bắt đầu bằng 2 ký tự chữ => là staff
+        if username[:2].isalpha():  # Nếu 2 ký tự đầu là chữ (staff)
+            try:
+                staff = Staff.objects.get(username=username)
+                return render(request, 'staff_home.html', {'staff': staff})
+            except Staff.DoesNotExist:
+                return render(request, 'error_page.html', {'message': 'Staff not found.'})
+        
+        # Nếu username không phải là staff, xử lý như sinh viên
+        else:
+            try:
+                student = Student.objects.get(username=username)
+            except Student.DoesNotExist:
+                return render(request, 'error_page.html', {'message': 'Student not found.'})
 
+            # Khởi tạo các form cho GET (để hiển thị các dữ liệu hiện tại của sinh viên)
+            info_form = StudentInfoForm(instance=student)
+            password_form = CustomPasswordChangeForm(user=request.user)
+            avatar_form = AvatarForm(instance=student)
 
+            return render(request, 'student_home.html', {
+                'student': student,
+                'info_form': info_form,
+                'password_form': password_form,
+                'avatar_form': avatar_form
+            })
+
+    def post(self, request):
+        username = request.user.username
+        
+        # Kiểm tra nếu username bắt đầu bằng 2 ký tự chữ => là staff
+        if username[:2].isalpha():  # Nếu 2 ký tự đầu là chữ (staff)
+            return HttpResponseForbidden('Chức năng này không dành cho staff.')  # Chỉ cho phép sinh viên chỉnh sửa
+        
+        # Nếu là sinh viên
+        else:
+            try:
+                student = Student.objects.get(username=username)
+            except Student.DoesNotExist:
+                return render(request, 'error_page.html', {'message': 'Student not found.'})
+
+            # Xử lý form khi có yêu cầu POST
+            # Đổi ảnh đại diện
+            if 'update_avatar' in request.POST:
+                avatar_form = AvatarForm(request.POST, request.FILES, instance=student)
+                if avatar_form.is_valid():
+                    avatar_form.save()
+                    messages.success(request, 'Ảnh đại diện đã được cập nhật.')
+                    return redirect('home')  # Reload lại trang
+
+            # Đổi thông tin cá nhân
+            elif 'update_info' in request.POST:
+                info_form = StudentInfoForm(request.POST, instance=student)
+                if info_form.is_valid():
+                    info_form.save()
+                    messages.success(request, 'Thông tin cá nhân đã được cập nhật.')
+                    return redirect('home')
+
+            # Đổi mật khẩu
+            elif 'change_password' in request.POST:
+                password_form = CustomPasswordChangeForm(user=request.user, data=request.POST)
+                if password_form.is_valid():
+                    user = password_form.save()  # Lưu mật khẩu mới
+                    update_session_auth_hash(request, user)  # Cập nhật session sau khi đổi mật khẩu
+                    messages.success(request, 'Mật khẩu của bạn đã được thay đổi.')
+                    return redirect('home')
+                else:
+                    messages.error(request, 'Mật khẩu không hợp lệ hoặc không khớp.')
+
+            # Nếu không có trường hợp nào, gửi lại thông báo lỗi
+            messages.error(request, 'Dữ liệu không hợp lệ.')
+            return redirect('home')
 # Đăng nhập/đăng xuất admin
 @method_decorator(csrf_exempt, name='dispatch')
 class AdminAuthAPIView(APIView):
@@ -55,8 +132,10 @@ class AdminAuthAPIView(APIView):
             password = request.data.get("password")
             user = authenticate(username=username, password=password)
             if user and user.is_staff:
+                # Đăng nhập thành công, bắt đầu phiên làm việc
                 login(request, user)
-                return Response({"message": "Đăng nhập thành công", "username": user.username})
+                # Chuyển hướng đến trang home sau khi đăng nhập thành công
+                return HttpResponseRedirect(reverse('home'))  # Chuyển hướng tới trang chủ (Home)
             return Response({"error": "Sai thông tin đăng nhập"}, status=status.HTTP_400_BAD_REQUEST)
         
         elif action == "logout":
@@ -64,8 +143,6 @@ class AdminAuthAPIView(APIView):
             return Response({"message": "Đăng xuất thành công"})
         
         return Response({"error": "Hành động không hợp lệ"}, status=status.HTTP_400_BAD_REQUEST)
-
-
 # ViewSet quản trị
 class AdminViewSet(viewsets.ViewSet):
     """
@@ -73,6 +150,7 @@ class AdminViewSet(viewsets.ViewSet):
     - GET/POST /admin-manager/create_staff/ -> Tạo Staff và gửi email ngay lúc tạo.
     - GET/POST /admin-manager/create_student/ -> Tạo Student và gửi email ngay lúc tạo.
     - (Tùy chọn) GET/POST /admin-manager/send_email/ -> Chỉ hiển thị danh sách user chưa gửi (thường sẽ rỗng).
+    - POST /admin-manager/create_department/ -> Tạo Khoa với mã khoa ngẫu nhiên.
     """
     permission_classes = [permissions.IsAdminUser]
 
@@ -83,6 +161,8 @@ class AdminViewSet(viewsets.ViewSet):
             return CreateStudentSerializer
         elif self.action == 'send_email':
             return SendEmailSerializer
+        elif self.action == 'create_department':
+            return CreateDepartmentSerializer
         return None
 
     def get_serializer(self, *args, **kwargs):
@@ -93,7 +173,7 @@ class AdminViewSet(viewsets.ViewSet):
 
     def list(self, request):
         return Response({
-            "message": "Admin Manager: Chọn action create_staff, create_student, send_email, v.v."
+            "message": "Admin Manager: Chọn action create_staff, create_student, send_email, create_department."
         })
 
     @action(methods=['get', 'post'], detail=False)
@@ -114,11 +194,9 @@ class AdminViewSet(viewsets.ViewSet):
             email = data['email']
             staff_name = data['staffName']
 
-            # Sinh staffCode và password plaintext
             staff_code = generate_account_code(prefix, Staff, 'staffCode')
             password = generate_password()
 
-            # Tạo Staff (password được hash trong DB)
             staff = Staff.objects.create_user(
                 username=staff_code,
                 password=password,
@@ -127,15 +205,10 @@ class AdminViewSet(viewsets.ViewSet):
                 staffName=staff_name
             )
 
-            # Gửi email ngay với mật khẩu gốc
             subject = "Thông tin tài khoản đăng nhập"
-            message = (
-                f"Xin chào {staff.fullName},\n"
-                f"Tài khoản của bạn:\nUsername: {staff.username}\nPassword: {password}"
-            )
+            message = f"Xin chào {staff.staffName},\nTài khoản của bạn:\nUsername: {staff.username}\nPassword: {password}"
             send_mail(subject, message, settings.EMAIL_HOST_USER, [staff.email])
 
-            # Đánh dấu đã gửi email
             staff.is_email_sent = True
             staff.save()
 
@@ -144,7 +217,7 @@ class AdminViewSet(viewsets.ViewSet):
                 "email": email,
                 "staffName": staff_name,
                 "staffCode": staff_code,
-                "password": password,  # plaintext trả về response
+                "password": password,
             }
             return Response(result_data, status=status.HTTP_201_CREATED)
 
@@ -166,11 +239,9 @@ class AdminViewSet(viewsets.ViewSet):
             email = data['email']
             full_name = data['fullName']
 
-            # Sinh studentCode và password plaintext
             student_code = generate_account_code(prefix, Student, 'studentCode')
             password = generate_password()
 
-            # Tạo Student (password được hash)
             student = Student.objects.create_user(
                 username=student_code,
                 password=password,
@@ -179,15 +250,10 @@ class AdminViewSet(viewsets.ViewSet):
                 fullName=full_name
             )
 
-            # Gửi email với mật khẩu gốc
             subject = "Thông tin tài khoản đăng nhập"
-            message = (
-                f"Xin chào {student.fullName},\n"
-                f"Tài khoản của bạn:\nUsername: {student.username}\nPassword: {password}"
-            )
+            message = f"Xin chào {student.fullName},\nTài khoản của bạn:\nUsername: {student.username}\nPassword: {password}"
             send_mail(subject, message, settings.EMAIL_HOST_USER, [student.email])
 
-            # Đánh dấu đã gửi email
             student.is_email_sent = True
             student.save()
 
@@ -196,7 +262,7 @@ class AdminViewSet(viewsets.ViewSet):
                 "email": email,
                 "fullName": full_name,
                 "studentCode": student_code,
-                "password": password,  # plaintext
+                "password": password,
             }
             return Response(result_data, status=status.HTTP_201_CREATED)
 
@@ -205,7 +271,6 @@ class AdminViewSet(viewsets.ViewSet):
         """
         Action tùy chọn: Liệt kê user chưa gửi email (GET).
         POST -> Gửi email cho user chưa gửi.
-        (Với cách này, nếu bạn đã gửi email khi tạo, phần này sẽ không gửi gì.)
         """
         if request.method == 'GET':
             unsent_students = Student.objects.filter(is_email_sent=False).values('id', 'username', 'email', 'is_email_sent')
@@ -222,11 +287,7 @@ class AdminViewSet(viewsets.ViewSet):
             for user in users:
                 try:
                     subject = "Thông tin tài khoản đăng nhập"
-                   
-                    message = (
-                        f"Xin chào {user.fullName},\n"
-                        f"Tài khoản của bạn:\nUsername: {user.username}\nPassword: {user.plain_password}"
-                    )
+                    message = f"Xin chào {user.fullName},\nTài khoản của bạn:\nUsername: {user.username}\nPassword: {user.plain_password}"
                     send_mail(subject, message, settings.EMAIL_HOST_USER, [user.email])
                     user.is_email_sent = True
                     user.save()
@@ -235,13 +296,48 @@ class AdminViewSet(viewsets.ViewSet):
                     continue
             return Response({"message": "Đã gửi email thành công"})
 
+    @action(methods=['post'], detail=False)
+    def create_department(self, request):
+        """
+        POST -> Tạo Khoa với mã khoa ngẫu nhiên.
+        """
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        department_name = serializer.validated_data.get('departmentName')
+        department_code = generate_department_code()
+
+        department = Department.objects.create(
+            departmentName=department_name,
+            departmentCode=department_code
+        )
+
+        result_data = {
+            "departmentName": department_name,
+            "departmentCode": department_code,
+        }
+
+        return Response(result_data, status=status.HTTP_201_CREATED)
 # View cho trang đăng nhập
 def login_view(request):
-    # Nếu người dùng đã đăng nhập, chuyển hướng đến trang chính (hoặc dashboard)
+    # Kiểm tra nếu người dùng đã đăng nhập, chuyển hướng đến trang home
     if request.user.is_authenticated:
-        return HttpResponse("Bạn đã đăng nhập rồi!")
-    # Render trang đăng nhập
-    return render(request, 'login.html')
+        return HttpResponseRedirect(reverse('home'))  # Chuyển hướng đến trang home nếu đã đăng nhập
+
+    # Nếu chưa đăng nhập, hiển thị trang đăng nhập
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        user = authenticate(request, username=username, password=password)
+
+        if user is not None:
+            login(request, user)
+            return HttpResponseRedirect(reverse('home'))  # Chuyển hướng tới trang home khi đăng nhập thành công
+        else:
+            # Thông báo lỗi nếu đăng nhập thất bại
+            return render(request, 'login.html', {'error': 'Sai tài khoản hoặc mật khẩu'})  # Hiển thị thông báo lỗi
+
+    return render(request, 'login.html')  # Hiển thị form đăng nhập nếu chưa có POST
 def forgot_password_view(request):
     if request.method == 'POST':
         email = request.POST.get('email')
@@ -267,3 +363,21 @@ def forgot_password_view(request):
 
     return render(request, 'forgot_password.html')
 
+from django.shortcuts import render
+
+# View chương trình khung
+def view_curriculum(request):
+    # Trả về trang chương trình khung
+    # if 1:
+        # return render(request,'error.html')
+    return render(request, 'curriculum.html')
+
+# View đăng ký học phần
+def register_subject(request):
+    # Trả về trang đăng ký học phần
+    return render(request, 'register_subject.html')
+
+# View xem hóa đơn
+def view_invoice(request):
+    # Trả về trang xem hóa đơn
+    return render(request, 'view_invoice.html')
