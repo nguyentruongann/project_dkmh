@@ -15,7 +15,6 @@ DATABASES = {
         'PORT': '3306',
     }
 }
-
 trong file để xác định database khi chạy code.
 ---------------------------------------------------------------------------------------------------------------------------
 Setting Email host  trong setting.py:
