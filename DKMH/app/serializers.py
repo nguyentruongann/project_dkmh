@@ -78,6 +78,8 @@ class SendEmailSerializer(serializers.Serializer):
     bạn có thể để trống hoặc đặt một message read-only.
     """
     message = serializers.CharField(read_only=True)
+class CreateDepartmentSerializer(serializers.Serializer):
+    departmentName = serializers.CharField(max_length=255)
 
 
 class SubjectSerializer(serializers.ModelSerializer):

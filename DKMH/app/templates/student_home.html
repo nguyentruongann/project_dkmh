@@ -1,0 +1,90 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trang cá nhân sinh viên</title>
+    <link rel="stylesheet" href="{% static 'css/student_home.css' %}">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+</head>
+<body>
+    <div class="header">
+        <span>{{ user.username }}</span>
+        <form method="POST" action="{% url 'logout' %}" style="display: inline;">
+            {% csrf_token %}
+            <button type="submit" class="logout-btn">Đăng xuất</button>
+        </form>
+    </div>
+
+    <div class="content">
+        <!-- Cột bên trái: Ảnh đại diện -->
+        <div class="profile-pic-container">
+            <img src="{{ student.profile_picture.url }}" alt="Ảnh đại diện">
+
+            <button class="toggle-option" id="change-avatar-btn">Cập nhật ảnh đại diện</button>
+            <div id="change-avatar-form">
+                <form method="POST" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    {{ avatar_form.as_p }}
+                    <button type="submit" name="update_avatar">Cập nhật ảnh đại diện</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Cột bên phải: Thông tin sinh viên -->
+        <div class="student-info-container">
+            <h2>Thông tin cá nhân</h2>
+            <p><strong>Họ và tên:</strong> {{ student.fullName }}</p>
+            <p><strong>Email:</strong> {{ student.email }}</p>
+            <p><strong>Số điện thoại:</strong> {{ student.phoneNumber }}</p>
+            <p><strong>Địa chỉ:</strong> {{ student.address }}</p>
+            <p><strong>Ngày sinh:</strong> {{ student.birthDate }}</p>
+            <p><strong>Khóa học:</strong> {{ student.k }}</p>
+            <p><strong>Lớp:</strong> {{ student.className }}</p>
+            <p><strong>Khoa:</strong> {{ student.department.departmentName }}</p>
+            <p><strong>Ngành học:</strong> {{ student.major.majorName }}</p>
+
+            <button class="toggle-option" id="edit-info-btn">Chỉnh sửa thông tin cá nhân</button>
+            <div id="edit-info-form">
+                <form method="POST" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    {{ info_form.as_p }}
+                    <button type="submit" name="update_info">Cập nhật thông tin</button>
+                </form>
+            </div>
+
+            <button class="toggle-option" id="change-password-btn">Đổi mật khẩu</button>
+            <div id="change-password-form">
+                <form method="POST">
+                    {% csrf_token %}
+                    {{ password_form.as_p }}
+                    <button type="submit" name="change_password">Đổi mật khẩu</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Các chức năng khác -->
+    <div class="content">
+        <a href="{% url 'curriculum' %}" class="option-btn">
+            <button class="toggle-option">Xem chương trình khung</button>
+        </a>
+        <a href="{% url 'register_subject' %}" class="option-btn">
+            <button class="toggle-option">Đăng ký học phần</button>
+        </a>
+        <a href="{% url 'view_invoice' %}" class="option-btn">
+            <button class="toggle-option">Xem hóa đơn</button>
+        </a>
+    </div>
+
+    <script>
+        $(document).ready(function(){
+            $(".toggle-option").click(function(){
+                var targetForm = "#" + $(this).attr("id").replace("btn", "form");
+                $(targetForm).toggle();
+            });
+        });
+    </script>
+</body>
+</html>
