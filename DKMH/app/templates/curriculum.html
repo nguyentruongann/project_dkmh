@@ -1,0 +1,14 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chương trình khung</title>
+    <link rel="stylesheet" href="{% static 'css/student_home.css' %}">
+</head>
+<body>
+    <h1>Chương trình khung cho {{ student.major.majorName }}</h1>
+    <p>Thông tin chi tiết về chương trình khung sẽ được hiển thị tại đây.</p>
+</body>
+</html>
