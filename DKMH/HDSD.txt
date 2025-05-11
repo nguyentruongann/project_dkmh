@@ -1,0 +1,1 @@
+Tạo major trước, yêu cầu data sinh viên phải major nằm trong database

@@ -20,17 +20,16 @@
     <div class="content">
         <!-- Cột bên trái: Ảnh đại diện -->
         <div class="profile-pic-container">
-            <img src="{{ student.profile_picture.url }}" alt="Ảnh đại diện">
-
-            <button class="toggle-option" id="change-avatar-btn">Cập nhật ảnh đại diện</button>
-            <div id="change-avatar-form">
+             <img src="{{ student.get_profile_picture }}" alt="Ảnh đại diện">
+             <button class="toggle-option" id="change-avatar-btn">Cập nhật ảnh đại diện</button>
+             <div id="change-avatar-form">
                 <form method="POST" enctype="multipart/form-data">
-                    {% csrf_token %}
-                    {{ avatar_form.as_p }}
-                    <button type="submit" name="update_avatar">Cập nhật ảnh đại diện</button>
+                {% csrf_token %}
+                {{ avatar_form.as_p }}
+                <button type="submit" name="update_avatar">Cập nhật ảnh đại diện</button>
                 </form>
-            </div>
-        </div>
+             </div>
+         </div>
 
         <!-- Cột bên phải: Thông tin sinh viên -->
         <div class="student-info-container">

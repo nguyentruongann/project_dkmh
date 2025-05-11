@@ -10,44 +10,458 @@
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
+            background-color: #f5f5f5;
         }
-        .header {
-            background-color: #f4f4f4;
-            padding: 10px;
-            text-align: right;
+        .container {
+            display: flex;
+            min-height: 100vh;
         }
-        .header span {
-            margin-right: 20px;
+        .sidebar {
+            width: 250px;
+            background-color: #fff;
+            padding: 20px;
+            border-right: 1px solid #ddd;
         }
-        .header a {
-            text-decoration: none;
-            color: #333;
-            margin-left: 20px;
+        .profile-pic-container {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .profile-pic-container img {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        .profile-pic-container button {
+            margin-top: 10px;
             padding: 5px 10px;
             background-color: #007bff;
             color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .staff-info {
+            margin-bottom: 20px;
+        }
+        .staff-info p {
+            margin: 5px 0;
+        }
+        .staff-info button {
+            padding: 5px 10px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .main-content {
+            flex: 1;
+            padding: 20px;
+        }
+        .header {
+            background-color: #fff;
+            padding: 10px 20px;
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            border-bottom: 1px solid #ddd;
+        }
+        .header span {
+            margin-right: 20px;
+            font-weight: bold;
+        }
+        .header form {
+            display: inline;
+        }
+        .header button {
+            background-color: #f44336;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .messages {
+            margin-bottom: 20px;
+        }
+        .alert {
+            padding: 10px;
+            margin: 10px 0;
             border-radius: 5px;
         }
-        .content {
+        .alert.success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .alert.error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .form-errors {
+            color: red;
+            margin-bottom: 10px;
+        }
+        .error {
+            margin: 5px 0;
+        }
+        .function-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .function-list button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .function-section {
+            background-color: #fff;
             padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            display: none;
+        }
+        .function-section.active {
+            display: block;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+        button.edit-btn, button.delete-btn {
+            padding: 5px 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button.edit-btn {
+            background-color: #ffc107;
+            color: white;
+        }
+        button.delete-btn {
+            background-color: #dc3545;
+            color: white;
         }
     </style>
 </head>
 <body>
-    <!-- Header with username and logout button -->
-    <div class="header">
-        <span>{{ user.username }}   </span>
-        
-        <!-- Form đăng xuất -->
-        <form method="POST" action="{% url 'logout' %}" style="display: inline;">
-            {% csrf_token %}
-            <button type="submit" style="background-color: #f44336; color: white; border: none; padding: 5px 10px; border-radius: 5px;">Đăng xuất</button>
-        </form>
+    <div class="container">
+        <!-- Sidebar: Ảnh đại diện và thông tin staff -->
+        <div class="sidebar">
+            <div class="profile-pic-container">
+                <img src="{{ staff.get_profile_picture }}" alt="Ảnh đại diện">
+                <button type="button" id="update-avatar-btn">Cập nhật ảnh</button>
+                <div id="update-avatar-form" style="display: none;">
+                    <form method="POST" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        {{ avatar_form.as_p }}
+                        {% if avatar_form.errors %}
+                            <div class="form-errors">
+                                {% for field, errors in avatar_form.errors.items %}
+                                    {% for error in errors %}
+                                        <p class="error">{{ error }}</p>
+                                    {% endfor %}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        <button type="submit" name="update_avatar">Lưu ảnh</button>
+                    </form>
+                </div>
+            </div>
+            <div class="staff-info">
+                <h3>Thông tin nhân viên</h3>
+                <p><strong>Tên:</strong> {{ staff.staffName }}</p>
+                <p><strong>Email:</strong> {{ staff.email }}</p>
+                <p><strong>Ngày sinh:</strong> {{ staff.birthDate|default:"Chưa cập nhật" }}</p>
+                <p><strong>Địa chỉ:</strong> {{ staff.address|default:"Chưa cập nhật" }}</p>
+                <p><strong>Ngành:</strong> {{ staff.major.majorName|default:"Chưa cập nhật" }}</p>
+                <button type="button" id="update-info-btn">Cập nhật thông tin</button>
+                <div id="update-info-form" style="display: none;">
+                    <form method="POST">
+                        {% csrf_token %}
+                        {{ info_form.as_p }}
+                        {% if info_form.errors %}
+                            <div class="form-errors">
+                                {% for field, errors in info_form.errors.items %}
+                                    {% for error in errors %}
+                                        <p class="error">{{ error }}</p>
+                                    {% endfor %}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        <button type="submit" name="update_info">Lưu thông tin</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main content -->
+        <div class="main-content">
+            <!-- Header -->
+            <div class="header">
+                <span>{{ staff.staffCode }}</span>
+                <form method="POST" action="{% url 'logout' %}">
+                    {% csrf_token %}
+                    <button type="submit">Đăng xuất</button>
+                </form>
+            </div>
+
+            <!-- Thông báo -->
+            {% if messages %}
+                <div class="messages">
+                    {% for message in messages %}
+                        <div class="alert {% if message.tags %}{{ message.tags }}{% endif %}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <!-- Danh sách chức năng -->
+<div class="function-list">
+    <button onclick="showSection('add-subject')">Thêm môn học</button>
+    <button onclick="showSection('edit-delete-subject')">Sửa/Xóa môn học</button>
+    <button onclick="showSection('add-lecturer')">Thêm giảng viên</button>
+    <button onclick="showSection('edit-delete-lecturer')">Sửa/Xóa giảng viên</button>
+    <button onclick="showSection('create-students')">Tạo tài khoản sinh viên</button>
+    <button onclick="showSection('change-password')">Đổi mật khẩu</button> <!-- Thay đổi nút -->
+</div>
+
+            <!-- Thêm section đổi mật khẩu -->
+            <div id="change-password" class="function-section">
+                <h2>Đổi mật khẩu</h2>
+                <form method="POST">
+                    {% csrf_token %}
+                    <p>
+                        <label for="id_old_password">Mật khẩu cũ:</label>
+                        <input type="password" name="old_password" required id="id_old_password">
+                    </p>
+                    <p>
+                        <label for="id_new_password1">Mật khẩu mới:</label>
+                        <input type="password" name="new_password1" required id="id_new_password1">
+                    </p>
+                    <p>
+                        <label for="id_new_password2">Xác nhận mật khẩu mới:</label>
+                        <input type="password" name="new_password2" required id="id_new_password2">
+                    </p>
+                    <button type="submit" name="change_password">Lưu</button>
+                </form>
+            </div>
+            <!-- Thêm môn học -->
+            <div id="add-subject" class="function-section">
+                <h2>Thêm môn học</h2>
+                <form method="POST">
+                    {% csrf_token %}
+                    {{ subject_form.as_p }}
+                    {% if subject_form.errors %}
+                        <div class="form-errors">
+                            {% for field, errors in subject_form.errors.items %}
+                                {% for error in errors %}
+                                    <p class="error">{{ error }}</p>
+                                {% endfor %}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    <button type="submit" name="add_subject">Thêm</button>
+                </form>
+            </div>
+
+            <!-- Sửa/Xóa môn học -->
+            <div id="edit-delete-subject" class="function-section">
+                <h2>Sửa/Xóa môn học</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Mã môn học</th>
+                            <th>Tên môn học</th>
+                            <th>Số tín chỉ lý thuyết</th>
+                            <th>Số tín chỉ thực hành</th>
+                            <th>Hành động</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for subject in subjects %}
+                            <tr>
+                                <td>{{ subject.subjectCode }}</td>
+                                <td>{{ subject.subjectName }}</td>
+                                <td>{{ subject.theoreticalCredits }}</td>
+                                <td>{{ subject.practiceCredit }}</td>
+                                <td>
+                                    <button type="button" class="edit-btn" onclick="showEditSubjectForm('{{ subject.subjectId }}')">Sửa</button>
+                                    <form method="POST" style="display: inline;">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="subject_id" value="{{ subject.subjectId }}">
+                                        <button type="submit" name="delete_subject" class="delete-btn">Xóa</button>
+                                    </form>
+                                </td>
+                            </tr>
+                            <tr id="edit-subject-{{ subject.subjectId }}" style="display: none;">
+                                <td colspan="5">
+                                    <form method="POST">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="subject_id" value="{{ subject.subjectId }}">
+                                        <input type="text" name="subjectName" value="{{ subject.subjectName }}" required>
+                                        <input type="number" name="theoreticalCredits" value="{{ subject.theoreticalCredits }}" required>
+                                        <input type="number" name="practiceCredit" value="{{ subject.practiceCredit }}" required>
+                                        <select name="status" required>
+                                            <option value="{{ subject.status }}">{{ subject.status }}</option>
+                                            <option value="Active">Active</option>
+                                            <option value="Inactive">Inactive</option>
+                                        </select>
+                                        <select name="department" required>
+                                            <option value="{{ subject.department.departmentId }}">{{ subject.department.departmentName }}</option>
+                                            {% for dept in subject_form.department.field.queryset %}
+                                                <option value="{{ dept.departmentId }}">{{ dept.departmentName }}</option>
+                                            {% endfor %}
+                                        </select>
+                                        <button type="submit" name="edit_subject">Lưu</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Thêm giảng viên -->
+            <div id="add-lecturer" class="function-section">
+                <h2>Thêm giảng viên</h2>
+                <form method="POST">
+                    {% csrf_token %}
+                    {{ lecturer_form.as_p }}
+                    {% if lecturer_form.errors %}
+                        <div class="form-errors">
+                            {% for field, errors in lecturer_form.errors.items %}
+                                {% for error in errors %}
+                                    <p class="error">{{ error }}</p>
+                                {% endfor %}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    <button type="submit" name="add_lecturer">Thêm</button>
+                </form>
+            </div>
+
+            <!-- Sửa/Xóa giảng viên -->
+            <div id="edit-delete-lecturer" class="function-section">
+                <h2>Sửa/Xóa giảng viên</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Mã giảng viên</th>
+                            <th>Tên giảng viên</th>
+                            <th>Email</th>
+                            <th>Hành động</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for lecturer in lecturers %}
+                            <tr>
+                                <td>{{ lecturer.lecturerCode }}</td>
+                                <td>{{ lecturer.lecturerName }}</td>
+                                <td>{{ lecturer.email }}</td>
+                                <td>
+                                    <button type="button" class="edit-btn" onclick="showEditLecturerForm('{{ lecturer.id }}')">Sửa</button>  <!-- Sửa từ lecturerId thành id -->
+                                    <form method="POST" style="display: inline;">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="lecturer_id" value="{{ lecturer.id }}">  <!-- Sửa từ lecturerId thành id -->
+                                        <button type="submit" name="delete_lecturer" class="delete-btn">Xóa</button>
+                                    </form>
+                                </td>
+                            </tr>
+                            <tr id="edit-lecturer-{{ lecturer.id }}" style="display: none;">  <!-- Sửa từ lecturerId thành id -->
+                                <td colspan="4">
+                                    <form method="POST">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="lecturer_id" value="{{ lecturer.id }}">  <!-- Sửa từ lecturerId thành id -->
+                                        <input type="text" name="lecturerName" value="{{ lecturer.lecturerName }}" required>
+                                        <input type="email" name="email" value="{{ lecturer.email }}" required>
+                                        <select name="major">
+                                            <option value="{{ lecturer.major.majorId }}">{{ lecturer.major.majorName }}</option>
+                                            {% for maj in lecturer_form.major.field.queryset %}
+                                                <option value="{{ maj.majorId }}">{{ maj.majorName }}</option>
+                                            {% endfor %}
+                                        </select>
+                                        <select name="department">
+                                            <option value="{{ lecturer.department.departmentId }}">{{ lecturer.department.departmentName }}</option>
+                                            {% for dept in lecturer_form.department.field.queryset %}
+                                                <option value="{{ dept.departmentId }}">{{ dept.departmentName }}</option>
+                                            {% endfor %}
+                                        </select>
+                                        <button type="submit" name="edit_lecturer">Lưu</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Tạo tài khoản sinh viên từ Excel -->
+            <div id="create-students" class="function-section">
+                <h2>Tạo tài khoản sinh viên từ file Excel</h2>
+                <form method="POST" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    {{ student_upload_form.as_p }}
+                    {% if student_upload_form.errors %}
+                        <div class="form-errors">
+                            {% for field, errors in student_upload_form.errors.items %}
+                                {% for error in errors %}
+                                    <p class="error">{{ error }}</p>
+                                {% endfor %}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    <button type="submit" name="create_students">Tạo tài khoản</button>
+                </form>
+            </div>
+        </div>
     </div>
-    
-    <div class="content">
-        <h1>Chào mừng đến với trang Staff</h1>
-        <p>Trang này dành cho nhân viên. Chúc bạn làm việc hiệu quả!</p>
-    </div>
+
+    <script>
+        function showSection(sectionId) {
+            document.querySelectorAll('.function-section').forEach(section => {
+                section.classList.remove('active');
+            });
+            document.getElementById(sectionId).classList.add('active');
+        }
+
+        document.getElementById('update-avatar-btn').addEventListener('click', function() {
+            const form = document.getElementById('update-avatar-form');
+            form.style.display = form.style.display === 'none' ? 'block' : 'none';
+        });
+
+        document.getElementById('update-info-btn').addEventListener('click', function() {
+            const form = document.getElementById('update-info-form');
+            form.style.display = form.style.display === 'none' ? 'block' : 'none';
+        });
+
+        function showEditSubjectForm(subjectId) {
+            const formRow = document.getElementById(`edit-subject-${subjectId}`);
+            formRow.style.display = formRow.style.display === 'none' ? 'table-row' : 'none';
+        }
+
+        function showEditLecturerForm(lecturerId) {
+        const formRow = document.getElementById(`edit-lecturer-${lecturerId}`);
+        formRow.style.display = formRow.style.display === 'none' ? 'table-row' : 'none';
+        }
+    </script>
 </body>
 </html>

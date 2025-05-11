@@ -48,12 +48,10 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-
-    'app',
     'rest_framework',
     'rest_framework.authtoken',
+    'app',  
 ]
-
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',  
@@ -87,13 +85,12 @@ WSGI_APPLICATION = 'DKMH.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
-
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'dkmh_db',
+        'NAME': 'dkmh_db',  # Ví dụ: dkmh_db
         'USER': 'root',
-        'PASSWORD': '',
+        'PASSWORD': '',               # Để trống hoặc mật khẩu bạn đặt
         'HOST': 'localhost',
         'PORT': '3306',
     }
@@ -146,8 +143,7 @@ STATICFILES_DIRS = [
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Custom user model
-AUTH_USER_MODEL = 'app.CustomUser'
+
 
 # Email configuration (đảm bảo thay đổi thông tin cho phù hợp với môi trường)
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
@@ -160,3 +156,5 @@ EMAIL_HOST_PASSWORD = 'yqps tosy gegy figk'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+# Custom user model
+AUTH_USER_MODEL = 'app.CustomUser'

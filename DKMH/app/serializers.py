@@ -12,9 +12,6 @@ class CreateStudentSerializer(serializers.Serializer):
     password = serializers.CharField(read_only=True)
 
     def validate_email(self, value):
-        """
-        Kiểm tra email trùng lặp giữa Student và Staff
-        """
         if Student.objects.filter(email=value).exists():
             raise ValidationError(f"Email {value} đã tồn tại trong hệ thống (Student).")
         if Staff.objects.filter(email=value).exists():
@@ -22,15 +19,9 @@ class CreateStudentSerializer(serializers.Serializer):
         return value
 
     def create(self, validated_data):
-        """
-        Tạo Student mới với studentCode ngẫu nhiên (2 ký tự đầu do admin nhập, phần còn lại tự tạo).
-        """
-        # Tạo studentCode ngẫu nhiên
         studentCode = validated_data['prefix'] + ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
-        # Tạo mật khẩu ngẫu nhiên cho student
         password = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
         
-        # Tạo Student mới
         student = Student.objects.create(
             **validated_data,
             studentCode=studentCode,
@@ -38,17 +29,16 @@ class CreateStudentSerializer(serializers.Serializer):
         )
         
         return student
+
 class CreateStaffSerializer(serializers.Serializer):
-    prefix = serializers.CharField(max_length=2)  # 2 ký tự đầu
+    prefix = serializers.CharField(max_length=2)
     email = serializers.EmailField()
     staffName = serializers.CharField(max_length=100)
+    major = serializers.PrimaryKeyRelatedField(queryset=Major.objects.all())
     staffCode = serializers.CharField(read_only=True)
     password = serializers.CharField(read_only=True)
 
     def validate_email(self, value):
-        """
-        Kiểm tra email trùng lặp giữa Staff và Student
-        """
         if Staff.objects.filter(email=value).exists():
             raise ValidationError(f"Email {value} đã tồn tại trong hệ thống (Staff).")
         if Student.objects.filter(email=value).exists():
@@ -56,15 +46,9 @@ class CreateStaffSerializer(serializers.Serializer):
         return value
 
     def create(self, validated_data):
-        """
-        Tạo Staff mới với staffCode ngẫu nhiên (2 ký tự đầu do admin nhập, phần còn lại tự tạo).
-        """
-        # Tạo staffCode ngẫu nhiên
         staffCode = validated_data['prefix'] + ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
-        # Tạo mật khẩu ngẫu nhiên cho staff
         password = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
         
-        # Tạo Staff mới
         staff = Staff.objects.create(
             **validated_data,
             staffCode=staffCode,
@@ -72,22 +56,27 @@ class CreateStaffSerializer(serializers.Serializer):
         )
         
         return staff
+
 class SendEmailSerializer(serializers.Serializer):
-    """
-    Nếu bạn không cần bất kỳ input nào,
-    bạn có thể để trống hoặc đặt một message read-only.
-    """
     message = serializers.CharField(read_only=True)
+
 class CreateDepartmentSerializer(serializers.Serializer):
     departmentName = serializers.CharField(max_length=255)
 
+class CreateMajorSerializer(serializers.Serializer):
+    majorName = serializers.CharField(max_length=255)
+    department = serializers.PrimaryKeyRelatedField(queryset=Department.objects.all())  # Chọn Department
+    majorCode = serializers.CharField(read_only=True)
+
+    def validate_majorName(self, value):
+        if Major.objects.filter(majorName=value).exists():
+            raise ValidationError(f"Tên ngành {value} đã tồn tại trong hệ thống.")
+        return value
 
 class SubjectSerializer(serializers.ModelSerializer):
     class Meta:
         model = Subject
         fields = '__all__'
-
-
 
 class MajorSerializer(serializers.ModelSerializer):
     departmentId = serializers.PrimaryKeyRelatedField(
@@ -101,12 +90,10 @@ class MajorSerializer(serializers.ModelSerializer):
         model = Major
         fields = ['majorId', 'majorCode', 'majorName', 'departmentId', 'departmentName']
 
-
 class DepartmentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Department
         fields = ['departmentId', 'departmentCode', 'departmentName']
-
 
 class CurriculumFrameworkSerializer(serializers.ModelSerializer):
     subjectId = serializers.PrimaryKeyRelatedField(
