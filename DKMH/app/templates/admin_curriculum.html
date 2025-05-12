@@ -1,0 +1,259 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý chương trình khung</title>
+    <link rel="stylesheet" href="{% static 'css/admin_curriculum.css' %}">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+</head>
+<body>
+    <header class="header">
+        <div class="header__brand">Hệ thống DKMH</div>
+        <div class="header__user">
+            <span>{{ user.username }}</span>
+            <form method="POST" action="{% url 'logout' %}" class="logout-form">
+                {% csrf_token %}
+                <button type="submit" class="btn btn--logout">Đăng xuất</button>
+            </form>
+        </div>
+    </header>
+
+    <main class="container">
+        <h1>Quản lý chương trình khung</h1>
+
+        {% if messages %}
+            <div class="messages">
+                {% for message in messages %}
+                    <div class="alert alert--{{ message.tags }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <!-- Form chọn ngành, số lượng kỳ, và giá tín chỉ -->
+        <section class="form-section">
+            <h2>Chọn ngành và thiết lập thông tin</h2>
+            <form method="POST" class="form form--grid">
+                {% csrf_token %}
+                <div class="form__group">
+                    <label for="id_major">Ngành:</label>
+                    {{ major_form.major }}
+                    {% if major_form.major.errors %}
+                        <ul class="errorlist">
+                            {% for error in major_form.major.errors %}
+                                <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                </div>
+                <div class="form__group">
+                    <label for="id_total_semesters">Số lượng kỳ:</label>
+                    {{ major_form.total_semesters }}
+                    {% if major_form.total_semesters.errors %}
+                        <ul class="errorlist">
+                            {% for error in major_form.total_semesters.errors %}
+                                <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                </div>
+                <div class="form__group">
+                    <label for="id_theoretical_credit_price">Giá tín chỉ lý thuyết (VNĐ):</label>
+                    {{ major_form.theoretical_credit_price }}
+                    {% if major_form.theoretical_credit_price.errors %}
+                        <ul class="errorlist">
+                            {% for error in major_form.theoretical_credit_price.errors %}
+                                <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                </div>
+                <div class="form__group">
+                    <label for="id_practical_credit_price">Giá tín chỉ thực hành (VNĐ):</label>
+                    {{ major_form.practical_credit_price }}
+                    {% if major_form.practical_credit_price.errors %}
+                        <ul class="errorlist">
+                            {% for error in major_form.practical_credit_price.errors %}
+                                <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                </div>
+                <button type="submit" name="set_semesters" class="btn btn--primary">Xác nhận</button>
+            </form>
+        </section>
+
+        {% if selected_major %}
+            <!-- Hiển thị thông tin giá tín chỉ của ngành đã chọn -->
+            <section class="info-section">
+                <h2>Thông tin ngành {{ selected_major.majorName }}</h2>
+                <p><strong>Số lượng kỳ:</strong> {{ selected_major.total_semesters }}</p>
+                <p><strong>Giá tín chỉ lý thuyết:</strong> {{ selected_major.theoretical_credit_price }} VNĐ</p>
+                <p><strong>Giá tín chỉ thực hành:</strong> {{ selected_major.practical_credit_price }} VNĐ</p>
+            </section>
+
+            <!-- Form thêm môn học -->
+            <section class="form-section">
+                <h2>Thêm môn học cho ngành {{ selected_major.majorName }}</h2>
+                <form method="POST" class="form form--grid">
+                    {% csrf_token %}
+                    {{ curriculum_form.major }}
+                    <div class="form__group">
+                        <label for="id_subject_name">Tên môn học:</label>
+                        {{ curriculum_form.subject_name }}
+                        {% if curriculum_form.subject_name.errors %}
+                            <ul class="errorlist">
+                                {% for error in curriculum_form.subject_name.errors %}
+                                    <li>{{ error }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </div>
+                    <div class="form__group">
+                        <label for="id_theoretical_credits">Tín chỉ lý thuyết:</label>
+                        {{ curriculum_form.theoretical_credits }}
+                        {% if curriculum_form.theoretical_credits.errors %}
+                            <ul class="errorlist">
+                                {% for error in curriculum_form.theoretical_credits.errors %}
+                                    <li>{{ error }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </div>
+                    <div class="form__group">
+                        <label for="id_practice_credit">Tín chỉ thực hành:</label>
+                        {{ curriculum_form.practice_credit }}
+                        {% if curriculum_form.practice_credit.errors %}
+                            <ul class="errorlist">
+                                {% for error in curriculum_form.practice_credit.errors %}
+                                    <li>{{ error }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </div>
+                    <div class="form__group">
+                        <label for="id_max_students">Số lượng sinh viên tối đa:</label>
+                        {{ curriculum_form.max_students }}
+                        {% if curriculum_form.max_students.errors %}
+                            <ul class="errorlist">
+                                {% for error in curriculum_form.max_students.errors %}
+                                    <li>{{ error }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </div>
+                    <div class="form__group">
+                        <label for="id_semester">Học kỳ:</label>
+                        {{ curriculum_form.semester }}
+                        {% if curriculum_form.semester.errors %}
+                            <ul class="errorlist">
+                                {% for error in curriculum_form.semester.errors %}
+                                    <li>{{ error }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </div>
+                    <div class="form__group">
+                        <label for="id_is_mandatory">Bắt buộc:</label>
+                        {{ curriculum_form.is_mandatory }}
+                        {% if curriculum_form.is_mandatory.errors %}
+                            <ul class="errorlist">
+                                {% for error in curriculum_form.is_mandatory.errors %}
+                                    <li>{{ error }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </div>
+                    <button type="submit" name="add_subject_to_curriculum" class="btn btn--primary">Thêm môn</button>
+                </form>
+            </section>
+
+            <!-- Danh sách chương trình khung -->
+            <h2>Danh sách chương trình khung của ngành {{ selected_major.majorName }}</h2>
+            {% if semester_data %}
+                {% for semester, semester_curriculum in semester_data %}
+                    <section class="semester-section">
+                        <h3>Học kỳ {{ semester }}</h3>
+                        {% if semester_curriculum %}
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Môn học</th>
+                                        <th>Học kỳ</th>
+                                        <th>Bắt buộc</th>
+                                        <th>Hành động</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in semester_curriculum %}
+                                        <tr>
+                                            <td>{{ item.subject.subjectName }}</td>
+                                            <td>{{ item.semester }}</td>
+                                            <td>{{ item.is_mandatory|yesno:"Có,Không" }}</td>
+                                            <td>
+                                                <button type="button" class="btn btn--edit" onclick="showEditForm('{{ item.curriculumFrameworkId }}')">Sửa</button>
+                                                <form method="POST" class="action-form">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="curriculum_id" value="{{ item.curriculumFrameworkId }}">
+                                                    <button type="submit" name="delete_curriculum" class="btn btn--delete">Xóa</button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                        <tr id="edit-curriculum-{{ item.curriculumFrameworkId }}" class="edit-form">
+                                            <td colspan="4">
+                                                <form method="POST" class="form form--edit">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="curriculum_id" value="{{ item.curriculumFrameworkId }}">
+                                                    <div class="form__group">
+                                                        <label>Tên môn học:</label>
+                                                        <input type="text" name="subject_name" value="{{ item.subject.subjectName }}" readonly>
+                                                    </div>
+                                                    <div class="form__group">
+                                                        <label>Tín chỉ lý thuyết:</label>
+                                                        <input type="number" name="theoretical_credits" value="{{ item.subject.theoreticalCredits }}" readonly>
+                                                    </div>
+                                                    <div class="form__group">
+                                                        <label>Tín chỉ thực hành:</label>
+                                                        <input type="number" name="practice_credit" value="{{ item.subject.practiceCredit }}" readonly>
+                                                    </div>
+                                                    <div class="form__group">
+                                                        <label>Số lượng sinh viên tối đa:</label>
+                                                        <input type="number" name="max_students" value="{{ item.subject.max_students }}" readonly>
+                                                    </div>
+                                                    <div class="form__group">
+                                                        <label>Học kỳ:</label>
+                                                        <input type="number" name="semester" value="{{ item.semester }}" required min="1" max="{{ selected_major.total_semesters }}">
+                                                    </div>
+                                                    <div class="form__group">
+                                                        <label>Bắt buộc:</label>
+                                                        <input type="checkbox" name="is_mandatory" {% if item.is_mandatory %}checked{% endif %}>
+                                                    </div>
+                                                    <button type="submit" name="edit_curriculum" class="btn btn--primary">Lưu</button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        {% else %}
+                            <p>Chưa có môn học nào trong học kỳ {{ semester }}.</p>
+                        {% endif %}
+                    </section>
+                {% endfor %}
+            {% else %}
+                <p>Ngành {{ selected_major.majorName }} chưa có chương trình khung.</p>
+            {% endif %}
+        {% endif %}
+    </main>
+
+    <script>
+        function showEditForm(curriculumId) {
+            const formRow = document.getElementById(`edit-curriculum-${curriculumId}`);
+            formRow.style.display = formRow.style.display === 'none' ? 'table-row' : 'none';
+        }
+    </script>
+</body>
+</html>

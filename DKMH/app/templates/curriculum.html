@@ -1,0 +1,58 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chương trình khung</title>
+    <link rel="stylesheet" href="{% static 'css/curriculum.css' %}">
+</head>
+<body>
+    <header class="header">
+        <div class="header__brand">Hệ thống DKMH</div>
+        <div class="header__user">
+            <span>{{ user.username }}</span>
+            <form method="POST" action="{% url 'logout' %}" class="logout-form">
+                {% csrf_token %}
+                <button type="submit" class="btn btn--logout">Đăng xuất</button>
+            </form>
+        </div>
+    </header>
+
+    <main class="container">
+        <h1>Chương trình khung ngành {{ student.major.majorName }}</h1>
+        <p class="course-info">Khóa học: {{ student.k }}</p>
+
+        {% if curriculum %}
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Học kỳ</th>
+                        <th>Mã môn học</th>
+                        <th>Tên môn học</th>
+                        <th>Tín chỉ lý thuyết</th>
+                        <th>Tín chỉ thực hành</th>
+                        <th>Bắt buộc</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in curriculum %}
+                        <tr>
+                            <td>{{ item.semester }}</td>
+                            <td>{{ item.subject.subjectCode }}</td>
+                            <td>{{ item.subject.subjectName }}</td>
+                            <td>{{ item.subject.theoreticalCredits }}</td>
+                            <td>{{ item.subject.practiceCredit }}</td>
+                            <td>{{ item.is_mandatory|yesno:"Có,Không" }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <div class="alert alert--info">
+                Chưa có chương trình khung cho ngành này.
+            </div>
+        {% endif %}
+    </main>
+</body>
+</html>

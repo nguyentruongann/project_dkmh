@@ -1,0 +1,583 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trang Staff</title>
+    <link rel="stylesheet" href="{% static 'css/staff_home.css' %}">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar: Ảnh đại diện và thông tin staff -->
+        <aside class="sidebar">
+            <div class="profile-pic-container">
+                <img src="{{ staff.get_profile_picture }}" alt="Ảnh đại diện" class="profile-pic">
+                <button type="button" id="update-avatar-btn" class="btn btn--primary">Cập nhật ảnh</button>
+                <div id="update-avatar-form" class="form-hidden">
+                    <form method="POST" enctype="multipart/form-data" class="form">
+                        {% csrf_token %}
+                        {{ avatar_form.as_p }}
+                        {% if avatar_form.errors %}
+                            <div class="form-errors">
+                                {% for field, errors in avatar_form.errors.items %}
+                                    {% for error in errors %}
+                                        <p class="error">{{ error }}</p>
+                                    {% endfor %}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        <button type="submit" name="update_avatar" class="btn btn--primary">Lưu ảnh</button>
+                    </form>
+                </div>
+            </div>
+            <div class="staff-info">
+                <h3>Thông tin nhân viên</h3>
+                <ul>
+                    <li><strong>Tên:</strong> {{ staff.staffName }}</li>
+                    <li><strong>Email:</strong> {{ staff.email }}</li>
+                    <li><strong>Ngày sinh:</strong> {{ staff.birthDate|default:"Chưa cập nhật" }}</li>
+                    <li><strong>Địa chỉ:</strong> {{ staff.address|default:"Chưa cập nhật" }}</li>
+                    <li><strong>Ngành:</strong> {{ staff.major.majorName|default:"Chưa cập nhật" }}</li>
+                </ul>
+                <button type="button" id="update-info-btn" class="btn btn--primary">Cập nhật thông tin</button>
+                <div id="update-info-form" class="form-hidden">
+                    <form method="POST" class="form form--grid">
+                        {% csrf_token %}
+                        <div class="form__group">
+                            <label for="id_staffName">Tên:</label>
+                            {{ info_form.staffName }}
+                            {% if info_form.staffName.errors %}
+                                <ul class="errorlist">
+                                    {% for error in info_form.staffName.errors %}
+                                        <li>{{ error }}</li>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
+                        </div>
+                        <div class="form__group">
+                            <label for="id_email">Email:</label>
+                            {{ info_form.email }}
+                            {% if info_form.email.errors %}
+                                <ul class="errorlist">
+                                    {% for error in info_form.email.errors %}
+                                        <li>{{ error }}</li>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
+                        </div>
+                        <div class="form__group">
+                            <label for="id_birthDate">Ngày sinh:</label>
+                            {{ info_form.birthDate }}
+                            {% if info_form.birthDate.errors %}
+                                <ul class="errorlist">
+                                    {% for error in info_form.birthDate.errors %}
+                                        <li>{{ error }}</li>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
+                        </div>
+                        <div class="form__group">
+                            <label for="id_address">Địa chỉ:</label>
+                            {{ info_form.address }}
+                            {% if info_form.address.errors %}
+                                <ul class="errorlist">
+                                    {% for error in info_form.address.errors %}
+                                        <li>{{ error }}</li>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
+                        </div>
+                        <div class="form__group">
+                            <label for="id_password">Mật khẩu hiện tại:</label>
+                            {{ info_form.password }}
+                            {% if info_form.password.errors %}
+                                <ul class="errorlist">
+                                    {% for error in info_form.password.errors %}
+                                        <li>{{ error }}</li>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
+                        </div>
+                        <button type="submit" name="update_info" class="btn btn--primary">Lưu thông tin</button>
+                    </form>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="header">
+                <div class="header__brand">Hệ thống DKMH</div>
+                <div class="header__user">
+                    <span>{{ staff.staffCode }}</span>
+                    <form method="POST" action="{% url 'logout' %}" class="logout-form">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn--logout">Đăng xuất</button>
+                    </form>
+                </div>
+            </header>
+
+            <!-- Thông báo -->
+            {% if messages %}
+                <div class="messages">
+                    {% for message in messages %}
+                        <div class="alert alert--{{ message.tags }}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <!-- Danh sách chức năng -->
+            <div class="function-list">
+                <button onclick="showSection('add-class')" class="btn btn--function">Thêm lớp học</button>
+                <button onclick="showSection('edit-delete-class')" class="btn btn--function">Sửa/Xóa lớp học</button>
+                <button onclick="showSection('add-lecturer')" class="btn btn--function">Thêm giảng viên</button>
+                <button onclick="showSection('edit-delete-lecturer')" class="btn btn--function">Sửa/Xóa giảng viên</button>
+                <button onclick="showSection('create-students')" class="btn btn--function">Tạo tài khoản sinh viên</button>
+                <button onclick="showSection('search-student')" class="btn btn--function">Tìm kiếm sinh viên</button>
+                <button onclick="showSection('change-password')" class="btn btn--function">Đổi mật khẩu</button>
+            </div>
+
+            <!-- Section đổi mật khẩu -->
+            <section id="change-password" class="function-section">
+                <h2>Đổi mật khẩu</h2>
+                <form method="POST" class="form form--grid">
+                    {% csrf_token %}
+                    <div class="form__group">
+                        <label for="id_old_password">Mật khẩu cũ:</label>
+                        {{ password_form.old_password }}
+                        {% if password_form.old_password.errors %}
+                            <ul class="errorlist">
+                                {% for error in password_form.old_password.errors %}
+                                    <li>{{ error }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </div>
+                    <div class="form__group">
+                        <label for="id_new_password1">Mật khẩu mới:</label>
+                        {{ password_form.new_password1 }}
+                        {% if password_form.new_password1.errors %}
+                            <ul class="errorlist">
+                                {% for error in password_form.new_password1.errors %}
+                                    <li>{{ error }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </div>
+                    <div class="form__group">
+                        <label for="id_new_password2">Xác nhận mật khẩu mới:</label>
+                        {{ password_form.new_password2 }}
+                        {% if password_form.new_password2.errors %}
+                            <ul class="errorlist">
+                                {% for error in password_form.new_password2.errors %}
+                                    <li>{{ error }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </div>
+                    <button type="submit" name="change_password" class="btn btn--primary">Lưu</button>
+                </form>
+            </section>
+
+            <!-- Section thêm lớp học -->
+            <section id="add-class" class="function-section">
+                <h2>Thêm lớp học</h2>
+                <form method="POST" class="form form--grid">
+                    {% csrf_token %}
+                    <div class="form__group">
+                        {{ subject_form.curriculum_subject.label_tag }} {{ subject_form.curriculum_subject }}
+                        {% if subject_form.curriculum_subject.errors %}
+                            <ul class="errorlist">
+                                {% for error in subject_form.curriculum_subject.errors %}
+                                    <li>{{ error }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </div>
+                    <div class="form__group">
+                        {{ subject_form.status.label_tag }} {{ subject_form.status }}
+                        {% if subject_form.status.errors %}
+                            <ul class="errorlist">
+                                {% for error in subject_form.status.errors %}
+                                    <li>{{ error }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </div>
+                    <div class="form__group">
+                        {{ subject_form.max_students.label_tag }} {{ subject_form.max_students }}
+                        {% if subject_form.max_students.errors %}
+                            <ul class="errorlist">
+                                {% for error in subject_form.max_students.errors %}
+                                    <li>{{ error }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </div>
+                    <button type="submit" name="add_subject" class="btn btn--primary">Thêm lớp</button>
+                </form>
+            </section>
+
+            <!-- Section sửa/xóa lớp học -->
+            <section id="edit-delete-class" class="function-section">
+                <h2>Sửa/Xóa lớp học</h2>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Mã lớp</th>
+                            <th>Tên lớp</th>
+                            <th>Môn học</th>
+                            <th>Số tín chỉ lý thuyết</th>
+                            <th>Số tín chỉ thực hành</th>
+                            <th>Trạng thái</th>
+                            <th>Số lượng SV tối đa</th>
+                            <th>Hành động</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for subject in subjects %}
+                            {% with class=subject.subject_classes.first %}
+                                {% if class %}
+                                    <tr>
+                                        <td>{{ class.classCode }}</td>
+                                        <td>{{ class.className }}</td>
+                                        <td>{{ subject.curriculum_subject.subjectName }}</td>
+                                        <td>{{ subject.curriculum_subject.theoreticalCredits }}</td>
+                                        <td>{{ subject.curriculum_subject.practiceCredit }}</td>
+                                        <td>{{ subject.status }}</td>
+                                        <td>{{ subject.max_students }}</td>
+                                        <td>
+                                            <button type="button" class="btn btn--edit" onclick="showEditClassForm('{{ subject.subjectId }}')">Sửa</button>
+                                            <form method="POST" class="action-form">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="subject_id" value="{{ subject.subjectId }}">
+                                                <button type="submit" name="delete_subject" class="btn btn--delete">Xóa</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                    <tr id="edit-subject-{{ subject.subjectId }}" class="edit-form">
+                                        <td colspan="8">
+                                            <form method="POST" class="form form--edit">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="subject_id" value="{{ subject.subjectId }}">
+                                                <div class="form__group">
+                                                    <label>Tên lớp:</label>
+                                                    <input type="text" value="{{ class.className }}" readonly>
+                                                </div>
+                                                <div class="form__group">
+                                                    <label>Môn học:</label>
+                                                    <input type="text" value="{{ subject.curriculum_subject.subjectName }}" readonly>
+                                                </div>
+                                                <div class="form__group">
+                                                    <label>Tín chỉ lý thuyết:</label>
+                                                    <input type="number" value="{{ subject.curriculum_subject.theoreticalCredits }}" readonly>
+                                                </div>
+                                                <div class="form__group">
+                                                    <label>Tín chỉ thực hành:</label>
+                                                    <input type="number" value="{{ subject.curriculum_subject.practiceCredit }}" readonly>
+                                                </div>
+                                                <div class="form__group">
+                                                    <label>Trạng thái:</label>
+                                                    <select name="status" required>
+                                                        <option value="{{ subject.status }}">{{ subject.status }}</option>
+                                                        <option value="Mở">Mở</option>
+                                                        <option value="Đóng">Đóng</option>
+                                                        <option value="Chấp Nhận Mở Lớp">Chấp Nhận Mở Lớp</option>
+                                                    </select>
+                                                </div>
+                                                <div class="form__group">
+                                                    <label>Số lượng SV tối đa:</label>
+                                                    <input type="number" name="max_students" value="{{ subject.max_students }}" required min="1">
+                                                </div>
+                                                <button type="submit" name="edit_subject" class="btn btn--primary">Lưu</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                {% endif %}
+                            {% endwith %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </section>
+
+            <!-- Section thêm giảng viên -->
+            <section id="add-lecturer" class="function-section">
+                <h2>Thêm giảng viên</h2>
+                <form method="POST" class="form form--grid">
+                    {% csrf_token %}
+                    <div class="form__group">
+                        {{ lecturer_form.lecturerName.label_tag }} {{ lecturer_form.lecturerName }}
+                        {% if lecturer_form.lecturerName.errors %}
+                            <ul class="errorlist">
+                                {% for error in lecturer_form.lecturerName.errors %}
+                                    <li>{{ error }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </div>
+                    <div class="form__group">
+                        {{ lecturer_form.email.label_tag }} {{ lecturer_form.email }}
+                        {% if lecturer_form.email.errors %}
+                            <ul class="errorlist">
+                                {% for error in lecturer_form.email.errors %}
+                                    <li>{{ error }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </div>
+                    <div class="form__group">
+                        {{ lecturer_form.major.label_tag }} {{ lecturer_form.major }}
+                        {% if lecturer_form.major.errors %}
+                            <ul class="errorlist">
+                                {% for error in lecturer_form.major.errors %}
+                                    <li>{{ error }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </div>
+                    <div class="form__group">
+                        {{ lecturer_form.department.label_tag }} {{ lecturer_form.department }}
+                        {% if lecturer_form.department.errors %}
+                            <ul class="errorlist">
+                                {% for error in lecturer_form.department.errors %}
+                                    <li>{{ error }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </div>
+                    <div class="form__group">
+                        {{ lecturer_form.class_to_teach.label_tag }} {{ lecturer_form.class_to_teach }}
+                        {% if lecturer_form.class_to_teach.errors %}
+                            <ul class="errorlist">
+                                {% for error in lecturer_form.class_to_teach.errors %}
+                                    <li>{{ error }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </div>
+                    <button type="submit" name="add_lecturer" class="btn btn--primary">Thêm</button>
+                </form>
+            </section>
+
+            <!-- Section sửa/xóa giảng viên -->
+            <section id="edit-delete-lecturer" class="function-section">
+                <h2>Sửa/Xóa giảng viên</h2>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Mã giảng viên</th>
+                            <th>Tên giảng viên</th>
+                            <th>Email</th>
+                            <th>Lớp giảng dạy</th>
+                            <th>Hành động</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for lecturer in lecturers %}
+                            <tr>
+                                <td>{{ lecturer.lecturerCode }}</td>
+                                <td>{{ lecturer.lecturerName }}</td>
+                                <td>{{ lecturer.email }}</td>
+                                <td>
+                                    {% if lecturer.lecturer_classes.exists %}
+                                        {% for class in lecturer.lecturer_classes.all %}
+                                            {{ class.className }} ({{ class.classCode }})<br>
+                                        {% endfor %}
+                                    {% else %}
+                                        Chưa gán lớp
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <button type="button" class="btn btn--edit" onclick="showEditLecturerForm('{{ lecturer.id }}')">Sửa</button>
+                                    <form method="POST" class="action-form">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="lecturer_id" value="{{ lecturer.id }}">
+                                        <button type="submit" name="delete_lecturer" class="btn btn--delete">Xóa</button>
+                                    </form>
+                                </td>
+                            </tr>
+                            <tr id="edit-lecturer-{{ lecturer.id }}" class="edit-form">
+                                <td colspan="5">
+                                    <form method="POST" class="form form--edit">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="lecturer_id" value="{{ lecturer.id }}">
+                                        <div class="form__group">
+                                            <label>Tên giảng viên:</label>
+                                            <input type="text" name="lecturerName" value="{{ lecturer.lecturerName }}" required>
+                                        </div>
+                                        <div class="form__group">
+                                            <label>Email:</label>
+                                            <input type="email" name="email" value="{{ lecturer.email }}" required>
+                                        </div>
+                                        <div class="form__group">
+                                            <label>Ngành:</label>
+                                            <select name="major">
+                                                <option value="{{ lecturer.major.majorId }}">{{ lecturer.major.majorName }}</option>
+                                                {% for maj in lecturer_form.major.field.queryset %}
+                                                    <option value="{{ maj.majorId }}">{{ maj.majorName }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        <div class="form__group">
+                                            <label>Khoa:</label>
+                                            <select name="department">
+                                                <option value="{{ lecturer.department.departmentId }}">{{ lecturer.department.departmentName }}</option>
+                                                {% for dept in lecturer_form.department.field.queryset %}
+                                                    <option value="{{ dept.departmentId }}">{{ dept.departmentName }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        <div class="form__group">
+                                            <label>Lớp giảng dạy:</label>
+                                            <select name="class_to_teach" required>
+                                                {% if lecturer.lecturer_classes.exists %}
+                                                    {% for class in lecturer.lecturer_classes.all %}
+                                                        <option value="{{ class.classId }}" selected>{{ class.className }} ({{ class.classCode }})</option>
+                                                    {% endfor %}
+                                                {% endif %}
+                                                {% for class in lecturer_form.class_to_teach.field.queryset %}
+                                                    {% if class not in lecturer.lecturer_classes.all %}
+                                                        <option value="{{ class.classId }}">{{ class.className }} ({{ class.classCode }})</option>
+                                                    {% endif %}
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        <button type="submit" name="edit_lecturer" class="btn btn--primary">Lưu</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </section>
+
+            <!-- Section tạo tài khoản sinh viên từ Excel -->
+            <section id="create-students" class="function-section">
+                <h2>Tạo tài khoản sinh viên từ file Excel</h2>
+                <form method="POST" enctype="multipart/form-data" class="form">
+                    {% csrf_token %}
+                    {{ student_upload_form.as_p }}
+                    {% if student_upload_form.errors %}
+                        <div class="form-errors">
+                            {% for field, errors in student_upload_form.errors.items %}
+                                {% for error in errors %}
+                                    <p class="error">{{ error }}</p>
+                                {% endfor %}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    <button type="submit" name="create_students" class="btn btn--primary">Tạo tài khoản</button>
+                </form>
+            </section>
+
+            <!-- Section tìm kiếm sinh viên -->
+            <section id="search-student" class="function-section">
+                <h2>Tìm kiếm sinh viên</h2>
+                <form method="POST" class="form">
+                    {% csrf_token %}
+                    {{ student_search_form.as_p }}
+                    <button type="submit" name="search_student" class="btn btn--primary">Tìm kiếm</button>
+                </form>
+
+                {% if searched_students %}
+                    <h3>Kết quả tìm kiếm</h3>
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Mã SV</th>
+                                <th>Họ tên</th>
+                                <th>Lớp đã đăng ký</th>
+                                <th>Công nợ</th>
+                                <th>Hành động</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for student_data in searched_students %}
+                                <tr>
+                                    <td>{{ student_data.student.studentCode }}</td>
+                                    <td>{{ student_data.student.fullName }}</td>
+                                    <td>
+                                        {% for reg_data in student_data.registrations %}
+                                            {% if reg_data.registration.class_obj %}
+                                                {{ reg_data.registration.class_obj.className }} ({{ reg_data.cost|floatformat:2 }} VNĐ)<br>
+                                            {% else %}
+                                                Lớp không tồn tại<br>
+                                            {% endif %}
+                                        {% empty %}
+                                            Chưa đăng ký lớp nào
+                                        {% endfor %}
+                                    </td>
+                                    <td>
+                                        Tổng: {{ student_data.total|floatformat:2 }} VNĐ<br>
+                                        Đã thanh toán: {{ student_data.paid|floatformat:2 }} VNĐ<br>
+                                        Công nợ: {{ student_data.debt|floatformat:2 }} VNĐ
+                                    </td>
+                                    <td>
+                                        {% for reg_data in student_data.registrations %}
+                                            {% if reg_data.registration.class_obj %}
+                                                <form method="POST" class="action-form">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="student_id" value="{{ student_data.student.studentId }}">
+                                                    <input type="hidden" name="class_id" value="{{ reg_data.registration.class_obj.classId }}">
+                                                    <button type="submit" name="cancel_registration" class="btn btn--delete">Hủy đăng ký {{ reg_data.registration.class_obj.className }}</button>
+                                                </form>
+                                                <form method="POST" class="action-form">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="student_id" value="{{ student_data.student.studentId }}">
+                                                    <input type="hidden" name="class_id" value="{{ reg_data.registration.class_obj.classId }}">
+                                                    <button type="submit" name="mark_payment" class="btn btn--primary">Đánh dấu thanh toán {{ reg_data.registration.class_obj.className }}</button>
+                                                </form>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% endif %}
+            </section>
+        </main>
+    </div>
+
+    <script>
+        function showSection(sectionId) {
+            document.querySelectorAll('.function-section').forEach(section => {
+                section.classList.remove('active');
+            });
+            document.getElementById(sectionId).classList.add('active');
+        }
+
+        document.getElementById('update-avatar-btn').addEventListener('click', function() {
+            const form = document.getElementById('update-avatar-form');
+            form.classList.toggle('form-hidden');
+        });
+
+        document.getElementById('update-info-btn').addEventListener('click', function() {
+            const form = document.getElementById('update-info-form');
+            form.classList.toggle('form-hidden');
+        });
+
+        function showEditClassForm(subjectId) {
+            const formRow = document.getElementById(`edit-subject-${subjectId}`);
+            formRow.classList.toggle('edit-form');
+        }
+
+        function showEditLecturerForm(lecturerId) {
+            const formRow = document.getElementById(`edit-lecturer-${lecturerId}`);
+            formRow.classList.toggle('edit-form');
+        }
+
+        // Tự động hiển thị section search-student nếu có kết quả tìm kiếm
+        window.onload = function() {
+            {% if searched_students %}
+                showSection('search-student');
+            {% endif %}
+        };
+    </script>
+</body>
+</html>

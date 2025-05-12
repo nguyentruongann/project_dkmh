@@ -1,0 +1,204 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trang cá nhân sinh viên</title>
+    <link rel="stylesheet" href="{% static 'css/student_home.css' %}">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+</head>
+<body>
+    <header class="header">
+        <div class="header__brand">Hệ thống DKMH</div>
+        <div class="header__user">
+            <span>{{ user.username }}</span>
+            <form method="POST" action="{% url 'logout' %}" class="logout-form">
+                {% csrf_token %}
+                <button type="submit" class="btn btn--logout">Đăng xuất</button>
+            </form>
+        </div>
+    </header>
+
+    <main class="container">
+        <!-- Hiển thị thông báo nếu có -->
+        {% if messages %}
+            <div class="messages">
+                {% for message in messages %}
+                    <div class="alert alert--{{ message.tags }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <div class="content">
+            <!-- Cột bên trái: Ảnh đại diện -->
+            <div class="profile-pic-container">
+                <img src="{{ student.get_profile_picture }}" alt="Ảnh đại diện" class="profile-pic">
+                <button type="button" class="toggle-option btn btn--primary" id="change-avatar-btn">Cập nhật ảnh đại diện</button>
+                <div id="change-avatar-form" class="form-hidden">
+                    <form method="POST" enctype="multipart/form-data" class="form">
+                        {% csrf_token %}
+                        {{ avatar_form.as_p }}
+                        {% if avatar_form.errors %}
+                            <div class="form-errors">
+                                {% for field, errors in avatar_form.errors.items %}
+                                    {% for error in errors %}
+                                        <p class="error">{{ error }}</p>
+                                    {% endfor %}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        <button type="submit" name="update_avatar" class="btn btn--primary">Lưu ảnh</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Cột bên phải: Thông tin sinh viên -->
+            <div class="student-info-container">
+                <h2>Thông tin cá nhân</h2>
+                <div class="info-display">
+                    <p><strong>Họ và tên:</strong> {{ student.fullName }}</p>
+                    <p><strong>Email:</strong> {{ student.email }}</p>
+                    <p><strong>Số điện thoại:</strong> {{ student.phoneNumber|default:"Chưa cập nhật" }}</p>
+                    <p><strong>Địa chỉ:</strong> {{ student.address|default:"Chưa cập nhật" }}</p>
+                    <p><strong>Ngày sinh:</strong> {{ student.birthDate|default:"Chưa cập nhật" }}</p>
+                    <p><strong>Khóa học:</strong> {{ student.k|default:"Chưa cập nhật" }}</p>
+                    <p><strong>Lớp:</strong> {{ student.className|default:"Chưa cập nhật" }}</p>
+                    <p><strong>Khoa:</strong> {{ student.department.departmentName|default:"Chưa cập nhật" }}</p>
+                    <p><strong>Ngành học:</strong> {{ student.major.majorName|default:"Chưa cập nhật" }}</p>
+                </div>
+
+                <!-- Form chỉnh sửa thông tin cá nhân -->
+                <button type="button" class="toggle-option btn btn--primary" id="edit-info-btn">Chỉnh sửa thông tin cá nhân</button>
+                <div id="edit-info-form" class="form-hidden">
+                    <form method="POST" enctype="multipart/form-data" class="form form--grid">
+                        {% csrf_token %}
+                        <div class="form__group">
+                            <label for="id_fullName">Họ và tên:</label>
+                            {{ info_form.fullName }}
+                            {% if info_form.fullName.errors %}
+                                <ul class="errorlist">
+                                    {% for error in info_form.fullName.errors %}
+                                        <li>{{ error }}</li>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
+                        </div>
+                        <div class="form__group">
+                            <label for="id_email">Email:</label>
+                            {{ info_form.email }}
+                            {% if info_form.email.errors %}
+                                <ul class="errorlist">
+                                    {% for error in info_form.email.errors %}
+                                        <li>{{ error }}</li>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
+                        </div>
+                        <div class="form__group">
+                            <label for="id_phoneNumber">Số điện thoại:</label>
+                            {{ info_form.phoneNumber }}
+                            {% if info_form.phoneNumber.errors %}
+                                <ul class="errorlist">
+                                    {% for error in info_form.phoneNumber.errors %}
+                                        <li>{{ error }}</li>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
+                        </div>
+                        <div class="form__group">
+                            <label for="id_address">Địa chỉ:</label>
+                            {{ info_form.address }}
+                            {% if info_form.address.errors %}
+                                <ul class="errorlist">
+                                    {% for error in info_form.address.errors %}
+                                        <li>{{ error }}</li>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
+                        </div>
+                        <div class="form__group">
+                            <label for="id_birthDate">Ngày sinh:</label>
+                            {{ info_form.birthDate }}
+                            {% if info_form.birthDate.errors %}
+                                <ul class="errorlist">
+                                    {% for error in info_form.birthDate.errors %}
+                                        <li>{{ error }}</li>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
+                        </div>
+                        <button type="submit" name="update_info" class="btn btn--primary">Cập nhật thông tin</button>
+                    </form>
+                </div>
+
+                <!-- Form đổi mật khẩu -->
+                <button type="button" class="toggle-option btn btn--primary" id="change-password-btn">Đổi mật khẩu</button>
+                <div id="change-password-form" class="form-hidden">
+                    <form method="POST" class="form form--grid">
+                        {% csrf_token %}
+                        <div class="form__group">
+                            <label for="id_old_password">Mật khẩu cũ:</label>
+                            {{ password_form.old_password }}
+                            {% if password_form.old_password.errors %}
+                                <ul class="errorlist">
+                                    {% for error in password_form.old_password.errors %}
+                                        <li>{{ error }}</li>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
+                        </div>
+                        <div class="form__group">
+                            <label for="id_new_password1">Mật khẩu mới:</label>
+                            {{ password_form.new_password1 }}
+                            {% if password_form.new_password1.errors %}
+                                <ul class="errorlist">
+                                    {% for error in password_form.new_password1.errors %}
+                                        <li>{{ error }}</li>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
+                        </div>
+                        <div class="form__group">
+                            <label for="id_new_password2">Xác nhận mật khẩu mới:</label>
+                            {{ password_form.new_password2 }}
+                            {% if password_form.new_password2.errors %}
+                                <ul class="errorlist">
+                                    {% for error in password_form.new_password2.errors %}
+                                        <li>{{ error }}</li>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
+                        </div>
+                        <button type="submit" name="change_password" class="btn btn--primary">Đổi mật khẩu</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Các chức năng khác -->
+        <div class="function-list">
+            <a href="{% url 'curriculum' %}" class="option-btn">
+                <button class="btn btn--function">Xem chương trình khung</button>
+            </a>
+            <a href="{% url 'register_subject' %}" class="option-btn">
+                <button class="btn btn--function">Đăng ký học phần</button>
+            </a>
+            <a href="{% url 'view_invoice' %}" class="option-btn">
+                <button class="btn btn--function">Xem hóa đơn</button>
+            </a>
+        </div>
+    </main>
+
+    <script>
+        $(document).ready(function(){
+            $(".toggle-option").click(function(){
+                var targetForm = "#" + $(this).attr("id").replace("btn", "form");
+                $(targetForm).toggle();
+            });
+        });
+    </script>
+</body>
+</html>

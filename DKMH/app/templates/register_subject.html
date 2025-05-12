@@ -1,0 +1,129 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng ký học phần</title>
+    <link rel="stylesheet" href="{% static 'css/register_subject.css' %}">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+</head>
+<body>
+    <header class="header">
+        <div class="header__brand">Hệ thống DKMH</div>
+        <div class="header__user">
+            <span>{{ user.username }}</span>
+            <form method="POST" action="{% url 'logout' %}" class="logout-form">
+                {% csrf_token %}
+                <button type="submit" class="btn btn--logout">Đăng xuất</button>
+            </form>
+        </div>
+    </header>
+
+    <main class="container">
+        <h1>Đăng ký môn học cho học kỳ {{ student.k }}</h1>
+
+        {% if messages %}
+            <div class="messages">
+                {% for message in messages %}
+                    <div class="alert alert--{{ message.tags }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Mã lớp</th>
+                    <th>Tên lớp</th>
+                    <th>Môn học</th>
+                    <th>Giảng viên</th>
+                    <th>Tín chỉ lý thuyết</th>
+                    <th>Tín chỉ thực hành</th>
+                    <th>Trạng thái</th>
+                    <th>Số lượng SV</th>
+                    <th>Bắt buộc</th>
+                    <th>Hành động</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for class_obj in classes %}
+                    <tr>
+                        <td>{{ class_obj.classCode }}</td>
+                        <td>
+                            <a href="#" class="toggle-details" data-class-id="{{ class_obj.classId }}">{{ class_obj.className }}</a>
+                        </td>
+                        <td>{{ class_obj.subject.curriculum_subject.subjectName }}</td>
+                        <td>
+                            {% if class_obj.lecturer %}
+                                {{ class_obj.lecturer.lecturerName }}
+                            {% else %}
+                                Chưa có giảng viên đứng lớp
+                            {% endif %}
+                        </td>
+                        <td>{{ class_obj.subject.curriculum_subject.theoreticalCredits }}</td>
+                        <td>{{ class_obj.subject.curriculum_subject.practiceCredit }}</td>
+                        <td>{{ class_obj.subject.status }}</td>
+                        <td>{{ class_obj.subject.current_students }}/{{ class_obj.subject.max_students }}</td>
+                        <td>
+                            {% for curr in curriculum %}
+                                {% if curr.subject == class_obj.subject.curriculum_subject %}
+                                    {{ curr.is_mandatory|yesno:"Có,Không" }}
+                                {% endif %}
+                            {% endfor %}
+                        </td>
+                        <td>
+                            {% if class_obj.classId in registered_classes %}
+                                {% if class_obj.subject.status == 'Mở' %}
+                                    <form method="POST" class="action-form">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="class_id" value="{{ class_obj.classId }}">
+                                        <input type="hidden" name="action" value="cancel">
+                                        <button type="submit" class="btn btn--cancel">Hủy</button>
+                                    </form>
+                                {% else %}
+                                    <span class="status-registered">Đã đăng ký</span>
+                                {% endif %}
+                            {% else %}
+                                <form method="POST" class="action-form">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="class_id" value="{{ class_obj.classId }}">
+                                    <input type="hidden" name="action" value="register">
+                                    <button type="submit" class="btn btn--register">Đăng ký</button>
+                                </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr class="subject-details" id="details-{{ class_obj.classId }}">
+                        <td class="subject-details__content" colspan="10">
+                            <ul>
+                                <li><strong>Mã lớp:</strong> {{ class_obj.classCode }}</li>
+                                <li><strong>Tên lớp:</strong> {{ class_obj.className }}</li>
+                                <li><strong>Môn học:</strong> {{ class_obj.subject.curriculum_subject.subjectName }}</li>
+                                <li><strong>Giảng viên:</strong> {% if class_obj.lecturer %}{{ class_obj.lecturer.lecturerName }}{% else %}Chưa có giảng viên đứng lớp{% endif %}</li>
+                                <li><strong>Tín chỉ lý thuyết:</strong> {{ class_obj.subject.curriculum_subject.theoreticalCredits }}</li>
+                                <li><strong>Tín chỉ thực hành:</strong> {{ class_obj.subject.curriculum_subject.practiceCredit }}</li>
+                                <li><strong>Trạng thái:</strong> {{ class_obj.subject.status }}</li>
+                                <li><strong>Số lượng sinh viên:</strong> {{ class_obj.subject.current_students }}/{{ class_obj.subject.max_students }}</li>
+                                <li><strong>Khoa:</strong> {{ class_obj.department.departmentName }}</li>
+                            </ul>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </main>
+
+    <script>
+        $(document).ready(function(){
+            $(".toggle-details").click(function(e){
+                e.preventDefault();
+                var classId = $(this).data("class-id");
+                $("#details-" + classId).toggleClass("active");
+            });
+        });
+    </script>
+</body>
+</html>
