@@ -3,56 +3,75 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chương trình khung</title>
+    <title>Chương trình khung của bạn</title>
     <link rel="stylesheet" href="{% static 'css/curriculum.css' %}">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
-<body>
+<body class="bg">
     <header class="header">
         <div class="header__brand">Hệ thống DKMH</div>
         <div class="header__user">
-            <span>{{ user.username }}</span>
-            <form method="POST" action="{% url 'logout' %}" class="logout-form">
-                {% csrf_token %}
-                <button type="submit" class="btn btn--logout">Đăng xuất</button>
+            <span>{{ student.fullName }} ({{ student.studentCode }})</span>
+            <form method="POST" action="{% url 'logout' %}">{% csrf_token %}
+                <button type="submit" class="btn btn-logout">Đăng xuất</button>
             </form>
         </div>
     </header>
 
     <main class="container">
-        <h1>Chương trình khung ngành {{ student.major.majorName }}</h1>
-        <p class="course-info">Khóa học: {{ student.k }}</p>
+        <div class="block-title">
+            <h1>Chương trình khung ngành <span>{{ major.majorName }}</span></h1>
+        </div>
+        <div class="info-major">
+            <div><b>Chuyên ngành:</b> {{ major.majorName }}</div>
+            <div><b>Số học kỳ:</b> {{ major.total_semesters }}</div>
+            <div><b>Giá tín chỉ lý thuyết:</b> {{ major.theoretical_credit_price|floatformat:0 }} VNĐ</div>
+            <div><b>Giá tín chỉ thực hành:</b> {{ major.practical_credit_price|floatformat:0 }} VNĐ</div>
+        </div>
 
-        {% if curriculum %}
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>Học kỳ</th>
-                        <th>Mã môn học</th>
-                        <th>Tên môn học</th>
-                        <th>Tín chỉ lý thuyết</th>
-                        <th>Tín chỉ thực hành</th>
-                        <th>Bắt buộc</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for item in curriculum %}
+        <div class="curriculum-block">
+        {% for semester, subjects, credits in semester_data %}
+            <div class="semester-card">
+                <div class="semester-title">
+                    Học kỳ {{ semester }}
+                    <span class="chip chip-mandatory">Bắt buộc: {{ credits.mandatory }}</span>
+                    <span class="chip chip-elective">Tự chọn: {{ credits.elective }}</span>
+                </div>
+                <div class="responsive-table">
+                <table>
+                    <thead>
                         <tr>
-                            <td>{{ item.semester }}</td>
-                            <td>{{ item.subject.subjectCode }}</td>
-                            <td>{{ item.subject.subjectName }}</td>
-                            <td>{{ item.subject.theoreticalCredits }}</td>
-                            <td>{{ item.subject.practiceCredit }}</td>
-                            <td>{{ item.is_mandatory|yesno:"Có,Không" }}</td>
+                            <th>Tên môn</th>
+                            <th>Tín chỉ LT</th>
+                            <th>Tín chỉ TH</th>
+                            <th>Bắt buộc</th>
                         </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        {% else %}
-            <div class="alert alert--info">
-                Chưa có chương trình khung cho ngành này.
+                    </thead>
+                    <tbody>
+                        {% for c in subjects %}
+                        <tr>
+                            <td>{{ c.subject.subjectName }}</td>
+                            <td>{{ c.subject.theoreticalCredits }}</td>
+                            <td>{{ c.subject.practiceCredit }}</td>
+                            <td>
+                                {% if c.is_mandatory %}
+                                    <span class="yes">Có</span>
+                                {% else %}
+                                    <span class="no">Không</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="empty-row">Không có môn học nào.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                </div>
             </div>
-        {% endif %}
+        {% endfor %}
+        </div>
     </main>
 </body>
 </html>

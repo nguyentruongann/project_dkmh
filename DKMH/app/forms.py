@@ -70,9 +70,10 @@ class SubjectForm(forms.Form):
     def __init__(self, *args, **kwargs):
         staff = kwargs.pop('staff', None)
         super().__init__(*args, **kwargs)
-        if staff and staff.major:
-            curriculum_subjects = CurriculumFramework.objects.filter(major=staff.major).values_list('subject', flat=True)
-            self.fields['curriculum_subject'].queryset = CurriculumSubject.objects.filter(curriculumSubjectId__in=curriculum_subjects)
+        if staff and staff.department:
+            self.fields['curriculum_subject'].queryset = CurriculumSubject.objects.filter(
+                department=staff.department
+            )
 
 # Form thêm/sửa giảng viên
 class LecturerForm(forms.ModelForm):
@@ -111,6 +112,10 @@ class MajorSemesterForm(forms.Form):
     total_semesters = forms.IntegerField(min_value=1, label="Số lượng kỳ", initial=8)
     theoretical_credit_price = forms.FloatField(min_value=0.0, label="Giá tín chỉ lý thuyết", initial=0.0)
     practical_credit_price = forms.FloatField(min_value=0.0, label="Giá tín chỉ thực hành", initial=0.0)
+
+    mandatory_credits = forms.IntegerField(min_value=0, label="Tín chỉ bắt buộc mỗi kỳ")
+    elective_credits = forms.IntegerField(min_value=0, label="Tín chỉ tự chọn mỗi kỳ")
+
 
 # Form thêm/sửa chương trình khung cho Admin
 class CurriculumFrameworkForm(forms.ModelForm):

@@ -189,17 +189,17 @@ class Major(models.Model):
     majorId = models.AutoField(primary_key=True)
     majorCode = models.CharField(max_length=50, unique=True)
     majorName = models.CharField(max_length=255)
-    department = models.ForeignKey(
-        Department,
-        on_delete=models.CASCADE,
-        related_name="department_majors"
-    )
+    department = models.ForeignKey(Department, on_delete=models.CASCADE, related_name="department_majors")
     total_semesters = models.IntegerField(default=8)
     theoretical_credit_price = models.FloatField(default=0.0, help_text="Giá mỗi tín chỉ lý thuyết")
     practical_credit_price = models.FloatField(default=0.0, help_text="Giá mỗi tín chỉ thực hành")
 
+    # Thêm trường tín chỉ bắt buộc và tự chọn cho từng kỳ (dạng JSON để linh hoạt)
+    credits_per_semester = models.JSONField(default=dict, help_text="Số tín chỉ bắt buộc và tự chọn mỗi kỳ")
+
     def __str__(self):
         return self.majorName
+
 
 # Model Môn học tham khảo (dùng trong chương trình khung)
 class CurriculumSubject(models.Model):

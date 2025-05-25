@@ -1,3 +1,5 @@
+install: pip install jsonfield
+
 Dùng xampp :
 - start Apache $ MySQL
 => click Admin tại MySQL để mở database trên localhost 

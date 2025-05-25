@@ -5,6 +5,7 @@ from django.core.mail import send_mail
 from django.conf import settings
 from django.http import HttpResponse, JsonResponse, HttpResponseRedirect
 import random
+import json,csv, io
 import string
 from django.contrib import messages
 from django.shortcuts import render, redirect
@@ -74,9 +75,9 @@ class HomeView(APIView):
                 staff = Staff.objects.get(username=username)
                 # Lấy danh sách Subject có ít nhất một Class thuộc khoa của staff
                 subjects = Subject.objects.filter(
-                    subject_classes__department=staff.department,
-                    subject_classes__is_nominal=False
+                subject_classes__department=staff.department
                 ).distinct()
+
                 context = {
                     'staff': staff,
                     'avatar_form': StaffAvatarForm(instance=staff),
@@ -344,7 +345,7 @@ class HomeView(APIView):
                             models.Q(studentCode__icontains=query) |
                             models.Q(fullName__icontains=query)
                         ).filter(department=staff.department)
-                        # Tính toán công nợ cho từng sinh viên
+
                         students_with_details = []
                         for student in searched_students:
                             total = 0
@@ -353,7 +354,7 @@ class HomeView(APIView):
                             for registration in student.student_registrations.all():
                                 class_obj = registration.class_obj
                                 subject = class_obj.subject
-                                if subject.status == 'Chấp Nhận Mở Lớp':
+                                if subject.status in ['Đóng', 'Chấp Nhận Mở Lớp']:
                                     cost = registration.calculate_cost()
                                     payment = class_obj.class_payments.filter(student=student).first()
                                     is_paid = payment.is_paid if payment else False
@@ -377,6 +378,7 @@ class HomeView(APIView):
                         messages.success(request, f'Tìm thấy {len(searched_students)} sinh viên.')
                     else:
                         messages.error(request, 'Vui lòng nhập thông tin tìm kiếm hợp lệ.')
+
 
                 elif 'cancel_registration' in request.POST:
                     student_id = request.POST.get('student_id')
@@ -586,7 +588,7 @@ class AdminViewSet(viewsets.ViewSet):
             prefix = data['prefix']
             email = data['email']
             staff_name = data['staffName']
-            major = data['major']
+            department = data['department']
 
             staff_code = generate_account_code(prefix, Staff, 'staffCode')
             password = generate_password()
@@ -597,8 +599,7 @@ class AdminViewSet(viewsets.ViewSet):
                 email=email,
                 staffCode=staff_code,
                 staffName=staff_name,
-                major=major,
-                department=major.department if major else None
+                department=department
             )
 
             subject = "Thông tin tài khoản đăng nhập"
@@ -612,7 +613,7 @@ class AdminViewSet(viewsets.ViewSet):
                 "prefix": prefix,
                 "email": email,
                 "staffName": staff_name,
-                "major": staff.major.majorName if staff.major else None,
+                "department": staff.department.departmentName,
                 "staffCode": staff_code,
                 "password": password,
             }
@@ -737,59 +738,147 @@ class AdminViewSet(viewsets.ViewSet):
     def create_curriculum(self, request):
         return HttpResponseRedirect(reverse('admin_curriculum'))
 
-# Trang quản lý chương trình khung cho Admin
 @staff_member_required
 def admin_curriculum(request):
-    if not request.user.is_staff:
-        messages.error(request, 'Bạn không có quyền truy cập trang này.')
-        return redirect('home')
-
+    all_departments = Department.objects.all()
     major_form = MajorSemesterForm()
     curriculum_form = CurriculumFrameworkForm()
+
+    # --- Lấy trạng thái chọn hiện tại ---
+    selected_department_id = request.GET.get('department_id') or request.session.get('selected_department_id')
+    selected_major_id = request.GET.get('major_id') or request.session.get('selected_major_id')
+    majors_in_department = Major.objects.none()
+    selected_department = None
     selected_major = None
-    curriculum = None
     semester_data = []
+    credits_per_semester = {}
+    total_semesters = 8
 
+    # --- Xác định Department, Major ---
+    if selected_department_id:
+        try:
+            selected_department = Department.objects.get(pk=selected_department_id)
+            majors_in_department = Major.objects.filter(department=selected_department)
+            request.session['selected_department_id'] = selected_department_id
+        except Department.DoesNotExist:
+            selected_department = None
+
+    if selected_major_id:
+        try:
+            selected_major = Major.objects.get(pk=selected_major_id)
+            credits_per_semester = selected_major.credits_per_semester or {}
+            total_semesters = selected_major.total_semesters
+            request.session['selected_major_id'] = selected_major_id
+        except Major.DoesNotExist:
+            selected_major = None
+            credits_per_semester = {}
+            total_semesters = 8
+
+    # --- XỬ LÝ POST ---
     if request.method == 'POST':
-        if 'set_semesters' in request.POST:
-            major_form = MajorSemesterForm(request.POST)
-            if major_form.is_valid():
-                major = major_form.cleaned_data['major']
-                total_semesters = major_form.cleaned_data['total_semesters']
-                theoretical_credit_price = major_form.cleaned_data['theoretical_credit_price']
-                practical_credit_price = major_form.cleaned_data['practical_credit_price']
-                major.total_semesters = total_semesters
-                major.theoretical_credit_price = theoretical_credit_price
-                major.practical_credit_price = practical_credit_price
-                major.save()
-                messages.success(request, f'Đã cập nhật thông tin ngành {major.majorName}: {total_semesters} kỳ, giá tín chỉ lý thuyết: {theoretical_credit_price}, giá tín chỉ thực hành: {practical_credit_price}.')
-                request.session['selected_major_id'] = major.majorId
-                return redirect('admin_curriculum')
-
-        elif 'add_subject_to_curriculum' in request.POST:
-            selected_major_id = request.session.get('selected_major_id')
-            if not selected_major_id:
-                messages.error(request, 'Vui lòng chọn ngành trước khi thêm môn học.')
-                return redirect('admin_curriculum')
-
+        # Lưu thông tin kỳ & giá tín chỉ
+        if 'save_major_info' in request.POST and selected_major:
             try:
-                selected_major = Major.objects.get(majorId=selected_major_id)
-            except Major.DoesNotExist:
-                messages.error(request, 'Ngành không tồn tại. Vui lòng chọn lại.')
-                del request.session['selected_major_id']
+                total_semesters = int(request.POST.get('total_semesters', 8))
+                theoretical_credit_price = float(request.POST.get('theoretical_credit_price', 0))
+                practical_credit_price = float(request.POST.get('practical_credit_price', 0))
+                credits_per_semester = {}
+                for i in range(1, total_semesters + 1):
+                    mandatory = int(request.POST.get(f'mandatory_credits_{i}', 0))
+                    elective = int(request.POST.get(f'elective_credits_{i}', 0))
+                    credits_per_semester[str(i)] = {'mandatory': mandatory, 'elective': elective}
+                selected_major.total_semesters = total_semesters
+                selected_major.theoretical_credit_price = theoretical_credit_price
+                selected_major.practical_credit_price = practical_credit_price
+                selected_major.credits_per_semester = credits_per_semester
+                selected_major.save()
+                messages.success(request, "Đã cập nhật số kỳ, tín chỉ và giá tín chỉ cho chuyên ngành.")
+                return redirect(f"{reverse('admin_curriculum')}?department_id={selected_department_id}&major_id={selected_major_id}")
+            except Exception as e:
+                messages.error(request, f"Lỗi lưu thông tin ngành: {e}")
+
+        # UPLOAD file CSV/JSON chương trình khung
+        elif 'upload_curriculum' in request.POST and request.FILES.get('curriculum_file') and selected_major:
+            file = request.FILES['curriculum_file']
+            ext = file.name.split('.')[-1].lower()
+            try:
+                subjects_data = []
+                if ext == 'csv':
+                    decoded = file.read().decode('utf-8-sig')
+                    reader = csv.DictReader(io.StringIO(decoded))
+                    for row in reader:
+                        subjects_data.append({
+                            "subject_name": row.get('Tên môn') or row.get('subject_name'),
+                            "theoretical_credits": int(row.get('Số chỉ LT') or row.get('theoretical_credits')),
+                            "practice_credit": int(row.get('Số chỉ TH') or row.get('practice_credit')),
+                            "semester": int(row.get('Kỳ') or row.get('semester')),
+                            "is_mandatory": str(row.get('Bắt buộc') or row.get('is_mandatory', '1')).strip().lower() in ['1', 'true', 'có', 'yes'],
+                            "max_students": int(row.get('Số lượng SV tối đa') or row.get('max_students') or 30)
+                        })
+                elif ext == 'json':
+                    subjects_data = json.load(file)
+                else:
+                    messages.error(request, "Chỉ nhận file .csv hoặc .json!")
+                    return redirect('admin_curriculum')
+
+                added, skipped = 0, 0
+                for item in subjects_data:
+                    existed = CurriculumFramework.objects.filter(
+                        major=selected_major,
+                        semester=item['semester'],
+                        subject__subjectName=item['subject_name']
+                    ).exists()
+                    if existed:
+                        skipped += 1
+                        continue
+                    curriculum_subject, created = CurriculumSubject.objects.get_or_create(
+                        subjectName=item['subject_name'],
+                        department=selected_major.department,
+                        defaults={
+                            'subjectCode': 'MH' + str(CurriculumSubject.objects.count() + 10000),
+                            'theoreticalCredits': item['theoretical_credits'],
+                            'practiceCredit': item['practice_credit'],
+                            'max_students': item.get('max_students', 30)
+                        }
+                    )
+                    if not created:
+                        updated = False
+                        if curriculum_subject.theoreticalCredits != item['theoretical_credits']:
+                            curriculum_subject.theoreticalCredits = item['theoretical_credits']
+                            updated = True
+                        if curriculum_subject.practiceCredit != item['practice_credit']:
+                            curriculum_subject.practiceCredit = item['practice_credit']
+                            updated = True
+                        if curriculum_subject.max_students != item.get('max_students', 30):
+                            curriculum_subject.max_students = item.get('max_students', 30)
+                            updated = True
+                        if updated:
+                            curriculum_subject.save()
+                    CurriculumFramework.objects.create(
+                        subject=curriculum_subject,
+                        major=selected_major,
+                        semester=item['semester'],
+                        is_mandatory=item['is_mandatory']
+                    )
+                    added += 1
+                messages.success(request, f"Đã thêm {added} môn học. Bỏ qua {skipped} môn bị trùng.")
+                return redirect(f"{reverse('admin_curriculum')}?department_id={selected_department_id}&major_id={selected_major_id}")
+            except Exception as e:
+                messages.error(request, f"Lỗi khi upload file: {e}")
                 return redirect('admin_curriculum')
 
+        # Các thao tác thêm/sửa/xóa môn vẫn giữ nguyên như bạn đã làm trước đó...
+        elif 'add_subject_to_curriculum' in request.POST and selected_major:
             data = request.POST.copy()
             data['major'] = selected_major.majorId
             curriculum_form = CurriculumFrameworkForm(data)
-
             if curriculum_form.is_valid():
                 subject_name = curriculum_form.cleaned_data['subject_name']
                 theoretical_credits = curriculum_form.cleaned_data['theoretical_credits']
                 practice_credit = curriculum_form.cleaned_data['practice_credit']
                 max_students = curriculum_form.cleaned_data['max_students']
                 curriculum_subject = CurriculumSubject.objects.create(
-                    subjectCode=generate_subject_code(),
+                    subjectCode='MH' + str(CurriculumSubject.objects.count() + 10000),
                     subjectName=subject_name,
                     theoreticalCredits=theoretical_credits,
                     practiceCredit=practice_credit,
@@ -799,22 +888,18 @@ def admin_curriculum(request):
                 curriculum = curriculum_form.save(commit=False)
                 curriculum.subject = curriculum_subject
                 curriculum.major = selected_major
-                curriculum.clean()
                 curriculum.save()
-                messages.success(request, f'Đã thêm môn {curriculum_subject.subjectName} vào chương trình khung (Học kỳ {curriculum.semester}).')
-                return redirect('admin_curriculum')
-            else:
-                messages.error(request, f'Có lỗi khi thêm môn học: {curriculum_form.errors}')
+                messages.success(request, f'Đã thêm môn {curriculum_subject.subjectName}.')
+                return redirect(f"{reverse('admin_curriculum')}?department_id={selected_department_id}&major_id={selected_major_id}")
 
         elif 'edit_curriculum' in request.POST:
             curriculum_id = request.POST.get('curriculum_id')
             curriculum_instance = CurriculumFramework.objects.get(curriculumFrameworkId=curriculum_id)
             curriculum_instance.semester = request.POST.get('semester')
             curriculum_instance.is_mandatory = 'is_mandatory' in request.POST
-            curriculum_instance.clean()
             curriculum_instance.save()
-            messages.success(request, 'Chương trình khung đã được cập nhật.')
-            return redirect('admin_curriculum')
+            messages.success(request, 'Cập nhật môn học thành công.')
+            return redirect(f"{reverse('admin_curriculum')}?department_id={selected_department_id}&major_id={selected_major_id}")
 
         elif 'delete_curriculum' in request.POST:
             curriculum_id = request.POST.get('curriculum_id')
@@ -822,32 +907,30 @@ def admin_curriculum(request):
             curriculum_subject = curriculum_instance.subject
             curriculum_instance.delete()
             curriculum_subject.delete()
-            messages.success(request, 'Chương trình khung và môn học đã được xóa.')
-            return redirect('admin_curriculum')
+            messages.success(request, 'Xóa môn học thành công.')
+            return redirect(f"{reverse('admin_curriculum')}?department_id={selected_department_id}&major_id={selected_major_id}")
 
-    selected_major_id = request.session.get('selected_major_id')
-    if selected_major_id:
-        try:
-            selected_major = Major.objects.get(majorId=selected_major_id)
-            curriculum = CurriculumFramework.objects.filter(major=selected_major)
-            semesters = range(1, selected_major.total_semesters + 1)
-            for semester in semesters:
-                curriculum_for_semester = curriculum.filter(semester=semester)
-                semester_data.append((semester, curriculum_for_semester))
-        except Major.DoesNotExist:
-            messages.error(request, 'Ngành không tồn tại. Vui lòng chọn lại.')
-            del request.session['selected_major_id']
-            selected_major = None
+    # --- Hiển thị danh sách kỳ và chỉ ---
+    range_1_total_semesters = range(1, total_semesters + 1)
+    if selected_major:
+        curriculum = CurriculumFramework.objects.filter(major=selected_major)
+        semester_data = []
+        for semester in range_1_total_semesters:
+            subjects = curriculum.filter(semester=semester)
+            semester_data.append((semester, subjects, credits_per_semester.get(str(semester), {"mandatory": 0, "elective": 0})))
 
     context = {
-        'major_form': major_form,
-        'curriculum_form': curriculum_form,
+        'all_departments': all_departments,
+        'majors_in_department': majors_in_department,
+        'selected_department': selected_department,
         'selected_major': selected_major,
-        'curriculum': curriculum,
         'semester_data': semester_data,
+        'credits_per_semester': credits_per_semester,
+        'total_semesters': total_semesters,
+        'range_1_total_semesters': range_1_total_semesters,
+        'curriculum_form': curriculum_form,
     }
     return render(request, 'admin_curriculum.html', context)
-
 def login_view(request):
     if request.user.is_authenticated:
         return HttpResponseRedirect(reverse('home'))
@@ -883,73 +966,78 @@ def forgot_password_view(request):
             return JsonResponse({"status": "error", "message": "Thông tin không chính xác, vui lòng kiểm tra lại."})
 
     return render(request, 'forgot_password.html')
+from django.contrib.auth.decorators import login_required
 
+@login_required
 def view_curriculum(request):
     student = Student.objects.get(username=request.user.username)
-    curriculum = CurriculumFramework.objects.filter(major=student.major)
-    return render(request, 'curriculum.html', {'curriculum': curriculum, 'student': student})
+    major = student.major
+    curriculum = CurriculumFramework.objects.filter(major=major).order_by('semester')
+    credits_per_semester = major.credits_per_semester or {}
+    semesters = range(1, major.total_semesters + 1)
 
+    semester_data = []
+    for semester in semesters:
+        subjects = curriculum.filter(semester=semester)
+        credits = credits_per_semester.get(str(semester), {"mandatory": 0, "elective": 0})
+        semester_data.append((semester, subjects, credits))
+
+    context = {
+        'student': student,
+        'major': major,
+        'semester_data': semester_data,
+        'credits_per_semester': credits_per_semester,
+        'semesters': semesters,
+    }
+    return render(request, 'curriculum.html', context)
+
+
+
+
+@login_required
 def register_subject(request):
     student = Student.objects.get(username=request.user.username)
-    curriculum = CurriculumFramework.objects.filter(major=student.major)
-    # Lấy danh sách lớp học (Class) thay vì môn học (Subject)
+    # Lấy tất cả các môn trong chương trình khung của ngành
+    curriculum_subjects = CurriculumFramework.objects.filter(
+        major=student.major
+    ).values_list('subject', flat=True)  # list các CurriculumSubject id
+
+    # Lấy các lớp học mở của các môn trong chương trình khung
     classes = Class.objects.filter(
-        subject__curriculum_subject__in=curriculum.values('subject'),
+        subject__curriculum_subject__in=curriculum_subjects,
         subject__status__in=['Mở', 'Chấp Nhận Mở Lớp'],
         is_nominal=False
-    ).distinct()
+    )
 
     if request.method == 'POST':
-        action = request.POST.get('action')
         class_id = request.POST.get('class_id')
+        class_obj = Class.objects.get(classId=class_id)
 
-        try:
-            class_obj = Class.objects.get(classId=class_id)
-            subject = class_obj.subject
-
-            if action == 'register':
-                if subject.current_students >= subject.max_students:
-                    messages.error(request, f'Lớp {class_obj.className} đã đủ số lượng sinh viên.')
-                elif StudentClass.objects.filter(student=student, class_obj=class_obj).exists():
-                    messages.error(request, f'Bạn đã đăng ký lớp {class_obj.className}.')
-                else:
-                    StudentClass.objects.create(
-                        student=student,
-                        class_obj=class_obj,
-                        registerDate=timezone.now(),
-                        semester=student.k
-                    )
-                    subject.current_students += 1
-                    subject.save()
-                    messages.success(request, f'Đăng ký lớp {class_obj.className} thành công.')
-
-            elif action == 'cancel' and subject.status == 'Mở':
-                registration = StudentClass.objects.filter(student=student, class_obj=class_obj).first()
-                if registration:
-                    registration.delete()
-                    subject.current_students -= 1
-                    subject.save()
-                    messages.success(request, f'Hủy đăng ký lớp {class_obj.className} thành công.')
-                else:
-                    messages.error(request, f'Bạn chưa đăng ký lớp {class_obj.className}.')
-
-            elif action == 'cancel' and subject.status != 'Mở':
-                messages.error(request, f'Không thể hủy lớp {class_obj.className} vì trạng thái là {subject.status}.')
-
-        except Class.DoesNotExist:
-            messages.error(request, 'Lớp học không tồn tại.')
-        except Exception as e:
-            messages.error(request, f'Đã xảy ra lỗi: {str(e)}')
+        if StudentClass.objects.filter(student=student, class_obj=class_obj).exists():
+            messages.error(request, f'Bạn đã đăng ký lớp {class_obj.className}.')
+        elif class_obj.subject.current_students >= class_obj.subject.max_students:
+            messages.error(request, 'Lớp đã đủ sinh viên.')
+        else:
+            StudentClass.objects.create(
+                student=student,
+                class_obj=class_obj,
+                registerDate=timezone.now(),
+                semester=student.k
+            )
+            class_obj.subject.current_students += 1
+            class_obj.subject.save()
+            messages.success(request, f'Đăng ký lớp {class_obj.className} thành công.')
 
         return redirect('register_subject')
 
     registered_classes = StudentClass.objects.filter(student=student).values_list('class_obj__classId', flat=True)
-    return render(request, 'register_subject.html', {
+
+    context = {
         'student': student,
         'classes': classes,
         'registered_classes': registered_classes,
-        'curriculum': curriculum,
-    })
+    }
+    return render(request, 'register_subject.html', context)
 
 def view_invoice(request):
     student = Student.objects.get(username=request.user.username)
@@ -963,7 +1051,7 @@ def view_invoice(request):
     for registration in registered_classes:
         class_obj = registration.class_obj
         subject = class_obj.subject
-        if subject.status == 'Chấp Nhận Mở Lớp':
+        if subject.status in ['Đóng', 'Chấp Nhận Mở Lớp']:
             cost = registration.calculate_cost()
             payment = Payment.objects.filter(student=student, class_obj=class_obj).first()
             is_paid = payment.is_paid if payment else False
@@ -987,3 +1075,10 @@ def view_invoice(request):
         'debt': debt,
     }
     return render(request, 'view_invoice.html', context)
+# Dùng để get key động trong template
+from django import template
+
+register = template.Library()
+@register.filter
+def get_item(dictionary, key):
+    return dictionary.get(str(key), {}) if dictionary else {}

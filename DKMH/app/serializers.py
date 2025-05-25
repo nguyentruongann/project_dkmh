@@ -34,27 +34,30 @@ class CreateStaffSerializer(serializers.Serializer):
     prefix = serializers.CharField(max_length=2)
     email = serializers.EmailField()
     staffName = serializers.CharField(max_length=100)
-    major = serializers.PrimaryKeyRelatedField(queryset=Major.objects.all())
+    department = serializers.PrimaryKeyRelatedField(queryset=Department.objects.all())
     staffCode = serializers.CharField(read_only=True)
     password = serializers.CharField(read_only=True)
 
     def validate_email(self, value):
         if Staff.objects.filter(email=value).exists():
-            raise ValidationError(f"Email {value} đã tồn tại trong hệ thống (Staff).")
+            raise ValidationError(f"Email {value} đã tồn tại (Staff).")
         if Student.objects.filter(email=value).exists():
-            raise ValidationError(f"Email {value} đã tồn tại trong hệ thống (Student).")
+            raise ValidationError(f"Email {value} đã tồn tại (Student).")
         return value
 
     def create(self, validated_data):
         staffCode = validated_data['prefix'] + ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
         password = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
-        
-        staff = Staff.objects.create(
-            **validated_data,
+
+        staff = Staff.objects.create_user(
+            username=staffCode,
+            password=password,
+            email=validated_data['email'],
             staffCode=staffCode,
-            password=password
+            staffName=validated_data['staffName'],
+            department=validated_data['department']
         )
-        
+
         return staff
 
 class SendEmailSerializer(serializers.Serializer):

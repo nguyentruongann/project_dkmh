@@ -1,0 +1,50 @@
+[
+    {
+        "subject_name": "Toán rời rạc",
+        "theoretical_credits": 3,
+        "practice_credit": 0,
+        "semester": 1,
+        "is_mandatory": true,
+        "max_students": 80
+    },
+    {
+        "subject_name": "Kỹ thuật lập trình",
+        "theoretical_credits": 2,
+        "practice_credit": 1,
+        "semester": 1,
+        "is_mandatory": true,
+        "max_students": 100
+    },
+    {
+        "subject_name": "Triết học",
+        "theoretical_credits": 2,
+        "practice_credit": 0,
+        "semester": 1,
+        "is_mandatory": false,
+        "max_students": 60
+    },
+    {
+        "subject_name": "Giải tích 1",
+        "theoretical_credits": 3,
+        "practice_credit": 0,
+        "semester": 2,
+        "is_mandatory": true,
+        "max_students": 90
+    },
+    {
+        "subject_name": "Lập trình OOP",
+        "theoretical_credits": 2,
+        "practice_credit": 1,
+        "semester": 2,
+        "is_mandatory": true,
+        "max_students": 100
+    },
+    {
+        "subject_name": "Anh văn 1",
+        "theoretical_credits": 2,
+        "practice_credit": 0,
+        "semester": 2,
+        "is_mandatory": false,
+        "max_students": 70
+    }
+]

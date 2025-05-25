@@ -1,0 +1,3 @@
+Nhân viên khoa - chỉnh lại view all môn trong khoa
+Tìm kiếm sinh viên chỉnh lại thấy sinh viên trạng thái đóng và chấp nhận mở lớp, khai xác nhận thanh toán hiển thị thông báo và hoàn thành công nợ
+thêm data có sẳn vô database 

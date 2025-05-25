@@ -151,7 +151,7 @@ EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'nta21303@gmail.com'
-EMAIL_HOST_PASSWORD = 'yqps tosy gegy figk'
+EMAIL_HOST_PASSWORD = 'dkmz pccs cdqh ujrz'
 # settings.py
 
 MEDIA_URL = '/media/'
